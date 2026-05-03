@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  typecheck-build-test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: remote_task_board_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/remote_task_board_test
+      AUTH_SECRET: test-secret
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install
+
+      # 注意：需要先安装 Playwright 浏览器才能 build
+      # （因为测试依赖 import 可能存在）
+      - run: pnpm playwright install --with-deps
+
+      - run: pnpm prisma migrate deploy
+
+      - run: pnpm db:seed
+
+      - run: pnpm typecheck
+
+      - run: pnpm build
+
+      - name: Start app & run E2E tests
+        run: |
+          pnpm start &> /tmp/next.log &
+          npx wait-on http://localhost:3000
+          pnpm test:e2e
