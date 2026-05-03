@@ -14,7 +14,11 @@
       "Bash(pnpm add *)",
       "Bash(pnpm approve-builds *)",
       "Bash(pnpm install *)",
-      "Bash(npx shadcn@latest *)"
+      "Bash(npx shadcn@latest *)",
+      "Bash(pnpm prisma:generate *)",
+      "Bash(DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/remote_task_board\" pnpm prisma:generate *)",
+      "Bash(pnpm typecheck *)",
+      "Bash(pnpm build *)"
     ]
   }
 }
