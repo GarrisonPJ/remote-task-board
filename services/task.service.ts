@@ -413,29 +413,72 @@ export async function updateTaskStatus(
 }
 
 // ============================================================
-// TODO：getTaskById — 获取任务详情
+// getTaskById — 获取任务详情（含 ActivityLog 时间线）
 // ============================================================
 
 /**
- * 1. 使用 getTaskWithPermission 获取 task + 权限
- * 2. include assignee 和 activityLogs（最近 10 条）
- * 3. 返回 TaskDTO
+ * 与 getTaskWithPermission 结构一致，额外 include 了 assignee 和 activityLogs。
  *
- * ActivityLog include 示例：
- *   activityLogs: {
- *     take: 10,
- *     orderBy: { createdAt: "desc" },
- *     include: {
- *       actor: { select: { id: true, name: true, email: true } }
- *     }
- *   }
+ * include 层级：
+ *   task
+ *   ├── assignee (select id, name, email)
+ *   ├── activityLogs (take 10, 按时间倒序, include actor)
+ *   └── project → workspace → members (where userId = actorId, 做权限检查)
  */
 export async function getTaskById(
   taskId: string,
   actorId: string
 ): Promise<TaskDTO> {
-  // TODO: 实现 — 参考 getTaskWithPermission，额外 include activityLogs
-  throw new Error("Not implemented");
+  const task = await prisma.task.findUnique({
+    where: { id: taskId },
+    include: {
+      // 负责人信息
+      assignee: {
+        select: { id: true, name: true, email: true },
+      },
+      // ActivityLog 时间线 — 与 members 同级，放在 task 的 include 下
+      activityLogs: {
+        take: 10,
+        orderBy: { createdAt: "desc" },
+        include: {
+          actor: { select: { id: true, name: true, email: true } },
+        },
+      },
+      // 权限检查：与 getTaskWithPermission 完全相同的嵌套查询
+      project: {
+        include: {
+          workspace: {
+            include: {
+              members: {
+                where: { userId: actorId },
+                select: { role: true },
+              },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!task) throw new NotFoundError("Task");
+
+  // 验证用户是否属于此 workspace（同 getTaskWithPermission）
+  const member = task.project.workspace.members[0];
+  if (!member) throw new NotFoundError("Task");
+
+  return {
+    id: task.id,
+    projectId: task.projectId,
+    title: task.title,
+    description: task.description,
+    status: task.status,
+    priority: task.priority,
+    creatorId: task.creatorId,
+    assignee: task.assignee ?? null,
+    dueDate: task.dueDate?.toISOString() ?? null,
+    createdAt: task.createdAt.toISOString(),
+    updatedAt: task.updatedAt.toISOString(),
+  };
 }
 
 // ============================================================
