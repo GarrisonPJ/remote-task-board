@@ -14,6 +14,27 @@
  *   - Section 8.4 状态机规则
  *   - Section 16 (权限设计)
  *   - Section 22.2 (更新任务状态序列图 — 事务要求)
+ *
+ * ============================================================
+ * 关键概念：DTO 转换
+ * ============================================================
+ *
+ * Prisma 返回的数据对象不能直接返回给 API 调用方，原因：
+ * 1. Date 类型 → JSON 不支持，需要转为 ISO string
+ * 2. 可能包含不应该暴露的字段（如 passwordHash）
+ * 3. 类型安全性——TaskDTO 定义了返回给前端的契约
+ *
+ * 所以每个方法末尾都有一个 "手动映射"：
+ *   return {
+ *     id: task.id,
+ *     title: task.title,
+ *     dueDate: task.dueDate?.toISOString() ?? null,  // Date → string
+ *     createdAt: task.createdAt.toISOString(),
+ *     ...
+ *   };
+ *
+ * 为什么不用 Prisma 的 select？因为 include + 手动映射更灵活——
+ * include 返回完整对象（含关联数据），映射时再决定哪些字段要返回。
  */
 
 import { prisma } from "@/lib/prisma";
@@ -221,6 +242,7 @@ export async function createTask(
     },
   });
 
+  // DTO 转换：Prisma 对象 → 前端可用类型
   return {
     id: task.id,
     projectId: task.projectId,
@@ -432,11 +454,9 @@ export async function getTaskById(
   const task = await prisma.task.findUnique({
     where: { id: taskId },
     include: {
-      // 负责人信息
       assignee: {
         select: { id: true, name: true, email: true },
       },
-      // ActivityLog 时间线 — 与 members 同级，放在 task 的 include 下
       activityLogs: {
         take: 10,
         orderBy: { createdAt: "desc" },
@@ -444,7 +464,6 @@ export async function getTaskById(
           actor: { select: { id: true, name: true, email: true } },
         },
       },
-      // 权限检查：与 getTaskWithPermission 完全相同的嵌套查询
       project: {
         include: {
           workspace: {
@@ -462,7 +481,6 @@ export async function getTaskById(
 
   if (!task) throw new NotFoundError("Task");
 
-  // 验证用户是否属于此 workspace（同 getTaskWithPermission）
   const member = task.project.workspace.members[0];
   if (!member) throw new NotFoundError("Task");
 
@@ -482,47 +500,72 @@ export async function getTaskById(
 }
 
 // ============================================================
-// TODO：updateTask — 更新任务字段（标题/描述/优先级/负责人/截止日期）
+// updateTask — 更新任务字段（标题/描述/优先级/负责人/截止日期）
 // ============================================================
 
-/**
- * 1. 使用 getTaskWithPermission 获取 task + 权限
- * 2. 检查 canUpdateTask 权限
- * 3. 如果修改了 assigneeId，必须验证新 assignee 在 workspace 中
- * 4. prisma.task.update
- *
- * 注意：只更新客户端传了的字段（用 input 的字段做 data），
- * 不传的字段保持原值。
- *
- * Prisma update data 示例：
- *   data: {
- *     title: input.title,
- *     // input.title 为 undefined 时 Prisma 不更新该字段
- *   }
- */
 export async function updateTask(
   taskId: string,
   input: UpdateTaskInput,
   actorId: string
 ): Promise<TaskDTO> {
-  // TODO: 实现
-  throw new Error("Not implemented");
+  // Step 1: 权限检查 + 数据隔离 — 复用 getTaskWithPermission
+  const { task, role } = await getTaskWithPermission(taskId, actorId);
+
+  // Step 2: 权限 — 修改任务字段需要 OWNER 或 MEMBER
+  if (!canUpdateTask(role)) throw new ForbiddenError();
+
+  // Step 3: 如果修改了 assigneeId，验证新 assignee 在 workspace 中
+  if (input.assigneeId) {
+    await validateAssigneeInWorkspace(task.projectId, input.assigneeId);
+  }
+
+  // Step 4: 更新 — Prisma 只更新 data 里传了的字段，undefined 的字段保持不变
+  const updated = await prisma.task.update({
+    where: { id: taskId },
+    data: {
+      title: input.title,
+      description: input.description,
+      priority: input.priority,
+      assigneeId: input.assigneeId,
+      dueDate: input.dueDate ? new Date(input.dueDate) : input.dueDate === null ? null : undefined,
+    },
+    include: {
+      assignee: {
+        select: { id: true, name: true, email: true },
+      },
+    },
+  });
+
+  // Step 5: DTO 转换
+  return {
+    id: updated.id,
+    projectId: updated.projectId,
+    title: updated.title,
+    description: updated.description,
+    status: updated.status,
+    priority: updated.priority,
+    creatorId: updated.creatorId,
+    assignee: updated.assignee ?? null,
+    dueDate: updated.dueDate?.toISOString() ?? null,
+    createdAt: updated.createdAt.toISOString(),
+    updatedAt: updated.updatedAt.toISOString(),
+  };
 }
 
 // ============================================================
-// TODO：deleteTask — 删除任务
+// deleteTask — 删除任务
 // ============================================================
 
-/**
- * 1. 使用 getTaskWithPermission 获取 task + 权限
- * 2. 检查 canDeleteTask(role, task.creatorId, actorId)
- * 3. prisma.task.delete({ where: { id } })
- * 4. 级联删除 activityLogs（Prisma onDelete: Cascade 自动处理）
- */
 export async function deleteTask(
   taskId: string,
   actorId: string
 ): Promise<void> {
-  // TODO: 实现
-  throw new Error("Not implemented");
+  // Step 1: 权限检查
+  const { task, role } = await getTaskWithPermission(taskId, actorId);
+
+  // Step 2: 权限 — OWNER 全面，MEMBER 只能删自己创建的
+  if (!canDeleteTask(role, task.creatorId, actorId)) throw new ForbiddenError();
+
+  // Step 3: 删除 — 级联删除 activityLogs 由 Prisma onDelete: Cascade 自动处理
+  await prisma.task.delete({ where: { id: taskId } });
 }
