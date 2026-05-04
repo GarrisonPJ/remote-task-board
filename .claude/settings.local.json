@@ -18,7 +18,13 @@
       "Bash(pnpm prisma:generate *)",
       "Bash(DATABASE_URL=\"postgresql://postgres:postgres@localhost:5432/remote_task_board\" pnpm prisma:generate *)",
       "Bash(pnpm typecheck *)",
-      "Bash(pnpm build *)"
+      "Bash(pnpm build *)",
+      "Bash(docker --version)",
+      "Bash(systemctl status *)",
+      "Bash(pg_isready)",
+      "Bash(pg_lsclusters)",
+      "Bash(psql --version)",
+      "Bash(grep -v \"^$\")"
     ]
   }
 }
