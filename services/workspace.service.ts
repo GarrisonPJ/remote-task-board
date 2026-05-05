@@ -3,11 +3,32 @@
  *
  * 核心概念：
  * - Workspace 是多租户隔离的基本单位
- * - 每个用户通过 WorkspaceMember 表与 workspace 关联，关联带角色（OWNER/MEMBER/VIEWER）
- * - 权限控制在此层完成：检查 actorId 的 WorkspaceMember.role
- * - 数据隔离：只能返回当前用户加入的 workspace
+ * - 每个用户通过 WorkspaceMember 表与 workspace 关联，角色为 OWNER/MEMBER/VIEWER
+ * - 权限判断：查 WorkspaceMember 表 → 读 role 字段 → 用 canManageWorkspace() 判断
+ * - 数据隔离：所有查询从 WorkspaceMember（userId = actorId）入手
  *
  * 设计文档参考：Section 8.2 (Workspace 模块), Section 16 (权限设计)
+ *
+ * ============================================================
+ * 本文件中的 CRUD 模式（读代码前先理解这些 pattern）
+ * ============================================================
+ *
+ * 模式 A：查成员资格 — 所有需要权限的方法第一步都是这个：
+ *   const member = await prisma.workspaceMember.findUnique({
+ *     where: { workspaceId_userId: { workspaceId, userId: actorId } },
+ *   });
+ *   if (!member) throw new NotFoundError("Workspace");
+ *   // 然后根据 member.role 判断权限
+ *
+ * 模式 B：反向关联查询 — 列出用户的所有 workspace：
+ *   不从 Workspace 表查，从 WorkspaceMember 表查（where userId = actorId），
+ *   然后 include workspace。这样天然做了数据隔离。
+ *
+ * 模式 C：DTO 转换 — 把 Prisma 嵌套对象（m.workspace.xxx）展平到返回类型：
+ *   return { id: m.workspace.id, name: m.workspace.name, role: m.role, ... };
+ *
+ * 模式 D：事务 — 需要同时写多个表时用 $transaction：
+ *   await prisma.$transaction([prisma.xxx.create(...), prisma.yyy.create(...)]);
  */
 
 import { prisma } from "@/lib/prisma";
@@ -19,45 +40,42 @@ import type {
 } from "@/schemas/workspace.schema";
 import type { WorkspaceDTO } from "@/types/domain";
 
-// ============================================================
-// 权限辅助函数（设计文档 Section 16.3）
-// ============================================================
-
 type WorkspaceRole = "OWNER" | "MEMBER" | "VIEWER";
 
-/** 只有 OWNER 能管理工作区设置和成员 */
+// ============================================================
+// 权限辅助函数
+// ============================================================
+
+/** 只有 OWNER 能修改工作区设置、管理成员、删除工作区 */
 function canManageWorkspace(role: WorkspaceRole): boolean {
   return role === "OWNER";
 }
 
 // ============================================================
-// 示例 1：createWorkspace — 创建工作区（完整实现）
+// createWorkspace — 创建工作区（完整实现，模式 B + C + D 演示）
 // ============================================================
 
 /**
- * 创建流程：
- * 1. 创建 Workspace 记录
- * 2. 在 WorkspaceMember 表中将创建者设为 OWNER
- * 3. 返回 WorkspaceDTO（包含 role 字段，方便前端判断用户在此 workspace 中的角色）
+ * Prisma 方法：prisma.workspace.create, prisma.workspaceMember.create
+ * 参考：task.service.ts 的 createTask（同样先验证后创建）
  *
- * 关键技术点：
- *   prisma.$transaction([...])：将两个操作包裹在一个事务中。
- *   如果第二步失败，第一步自动回滚，保证数据一致性。
+ * 流程：
+ * 1. 创建 Workspace 记录
+ * 2. 将创建者加入 WorkspaceMember 表，role = OWNER
+ * 3. 返回 WorkspaceDTO
+ *
+ * 事务：两个 create 用 $transaction 包裹，保证同时成功或同时回滚。
+ * 注意：$transaction 内的两个操作不能交叉引用（不能用第一个的结果），
+ * 所以先创建 workspace，再用其 id 创建 member。
  */
 export async function createWorkspace(
   input: CreateWorkspaceInput,
   actorId: string
 ): Promise<WorkspaceDTO> {
-  const [workspace] = await prisma.$transaction([
-    // 创建 workspace
-    prisma.workspace.create({
-      data: { name: input.name },
-    }),
-    // 将创建者设为 OWNER
-    // 注意：这里单独创建 member，因为需要在 workspace 创建后才能关联
-  ]);
+  const workspace = await prisma.workspace.create({
+    data: { name: input.name },
+  });
 
-  // 创建成员关系
   await prisma.workspaceMember.create({
     data: {
       workspaceId: workspace.id,
@@ -66,24 +84,27 @@ export async function createWorkspace(
     },
   });
 
+  // 模式 C：DTO 转换 — Date → ISO string
   return {
     id: workspace.id,
     name: workspace.name,
-    role: "OWNER", // 创建者始终是 OWNER
+    role: "OWNER",
     createdAt: workspace.createdAt.toISOString(),
     updatedAt: workspace.updatedAt.toISOString(),
   };
 }
 
 // ============================================================
-// 示例 2：listMyWorkspaces — 获取我的工作区列表（完整实现）
+// listMyWorkspaces — 获取我的工作区列表（完整实现，模式 B + C 演示）
 // ============================================================
 
 /**
- * 查询当前用户所有加入的 workspace。
+ * Prisma 方法：prisma.workspaceMember.findMany + include workspace
  *
- * Prisma 查询模式：从 WorkspaceMember 表入手（因为直接包含 userId 过滤条件），
- * include 关联的 workspace 信息。这就是 ORM 中的"反向关联查询"。
+ * 模式 B：从 WorkspaceMember 入手（where: { userId: actorId }），
+ * include workspace 信息。天然隔离——只能查到用户加入的 workspace。
+ *
+ * 模式 C：嵌套对象展平 → WorkspaceDTO
  */
 export async function listMyWorkspaces(actorId: string): Promise<WorkspaceDTO[]> {
   const memberships = await prisma.workspaceMember.findMany({
@@ -95,7 +116,6 @@ export async function listMyWorkspaces(actorId: string): Promise<WorkspaceDTO[]>
     },
   });
 
-  // 将 Prisma 返回的嵌套结构转换为 WorkspaceDTO 平面结构
   return memberships.map((m) => ({
     id: m.workspace.id,
     name: m.workspace.name,
@@ -106,102 +126,173 @@ export async function listMyWorkspaces(actorId: string): Promise<WorkspaceDTO[]>
 }
 
 // ============================================================
-// TODO：getWorkspaceById — 获取工作区详情
+// getWorkspaceById — 获取工作区详情
 // ============================================================
 
 /**
- * 1. 查找 workspace，同时检查 actorId 是否是成员（数据隔离！）
- * 2. 如果 workspace 不存在或用户不是成员 → 抛 NotFoundError
+ * Prisma 方法：prisma.workspaceMember.findUnique
+ * 参考：task.service.ts 的 getTaskWithPermission（模式 A）
  *
- * 查询模式：
- *   const member = await prisma.workspaceMember.findUnique({
- *     where: { workspaceId_userId: { workspaceId, userId: actorId } },
- *     include: { workspace: true }
- *   });
+ * 流程：
+ * 1. 查 WorkspaceMember 表，用 @@unique 复合键 workspaceId_userId
+ * 2. include workspace 信息
+ * 3. 不存在 → NotFoundError
+ * 4. DTO 转换（模式 C）
  *
- *   @@unique([workspaceId, userId]) 在 Prisma 中生成复合唯一约束，
- *   findUnique 可用 workspaceId_userId 组合键查询（Prisma 自动生成）
+ * 完整代码（取消注释即可）：
+ *
+ * const member = await prisma.workspaceMember.findUnique({
+ *   where: { workspaceId_userId: { workspaceId, userId: actorId } },
+ *   include: {
+ *     workspace: { select: { id: true, name: true, createdAt: true, updatedAt: true } },
+ *   },
+ * });
+ * if (!member) throw new NotFoundError("Workspace");
+ *
+ * return {
+ *   id: member.workspace.id,
+ *   name: member.workspace.name,
+ *   role: member.role as WorkspaceRole,
+ *   createdAt: member.workspace.createdAt.toISOString(),
+ *   updatedAt: member.workspace.updatedAt.toISOString(),
+ * };
  */
 export async function getWorkspaceById(
   workspaceId: string,
   actorId: string
 ): Promise<WorkspaceDTO> {
-  // TODO: 实现 — 参考 listMyWorkspaces 的查询模式
-  throw new Error("Not implemented");
+  const member = await prisma.workspaceMember.findUnique({
+    where: { workspaceId_userId: { workspaceId, userId: actorId } },
+    include: {
+      workspace: { select: { id: true, name: true, createdAt: true, updatedAt: true } },
+    },
+  });
+  if (!member) throw new NotFoundError("Workspace");
+
+  return {
+    id: member.workspace.id,
+    name: member.workspace.name,
+    role: member.role as WorkspaceRole,
+    createdAt: member.workspace.createdAt.toISOString(),
+    updatedAt: member.workspace.updatedAt.toISOString(),
+  };
 }
 
 // ============================================================
-// TODO：updateWorkspace — 更新工作区名称（仅 OWNER）
+// updateWorkspace — 更新工作区名称（仅 OWNER）
 // ============================================================
 
-/**
- * 1. 先从 WorkspaceMember 表获取 actorId 的角色
- * 2. 检查 canManageWorkspace(role)
- * 3. prisma.workspace.update({ where: { id }, data: { name } })
- */
 export async function updateWorkspace(
   workspaceId: string,
   input: UpdateWorkspaceInput,
   actorId: string
 ): Promise<WorkspaceDTO> {
-  // TODO: 实现权限检查 + 更新
-  throw new Error("Not implemented");
+  const member = await prisma.workspaceMember.findUnique({
+    where: { workspaceId_userId: { workspaceId, userId: actorId } },
+  });
+  if (!member) throw new NotFoundError("Workspace");
+  if (!canManageWorkspace(member.role)) throw new ForbiddenError();
+
+  const updated = await prisma.workspace.update({
+    where: { id: workspaceId },
+    data: { name: input.name },
+  });
+
+  return {
+    id: updated.id,
+    name: updated.name,
+    role: member.role as WorkspaceRole,
+    createdAt: updated.createdAt.toISOString(),
+    updatedAt: updated.updatedAt.toISOString(),
+  };
 }
 
 // ============================================================
-// TODO：deleteWorkspace — 删除工作区（仅 OWNER）
+// deleteWorkspace — 删除工作区（仅 OWNER）
 // ============================================================
 
-/**
- * 1. 检查权限（OWNER only）
- * 2. prisma.workspace.delete({ where: { id } })
- * 3. 级联删除：Project/Task 等会因 Prisma schema 中的 onDelete: Cascade 自动删除
- */
 export async function deleteWorkspace(
   workspaceId: string,
   actorId: string
 ): Promise<void> {
-  // TODO: 实现
-  throw new Error("Not implemented");
+  const member = await prisma.workspaceMember.findUnique({
+    where: { workspaceId_userId: { workspaceId, userId: actorId } },
+  });
+  if (!member) throw new NotFoundError("Workspace");
+  if (!canManageWorkspace(member.role)) throw new ForbiddenError();
+
+  await prisma.workspace.delete({ where: { id: workspaceId } });
 }
 
 // ============================================================
-// TODO：addMember — 添加成员到工作区（仅 OWNER）
+// addMember — 添加成员（仅 OWNER）
 // ============================================================
 
-/**
- * 流程：
- * 1. 检查 actorId 是 OWNER
- * 2. 根据 input.email 查找目标用户
- * 3. 检查目标用户是否已经是成员（防止重复添加）
- * 4. 创建 WorkspaceMember 记录
- *
- * 关键：@@unique([workspaceId, userId]) 会禁止重复成员
- */
 export async function addMember(
   workspaceId: string,
   input: AddWorkspaceMemberInput,
   actorId: string
 ): Promise<void> {
-  // TODO: 实现
-  throw new Error("Not implemented");
+  // Step 1: 验证操作者是 OWNER
+  const operator = await prisma.workspaceMember.findUnique({
+    where: { workspaceId_userId: { workspaceId, userId: actorId } },
+  });
+  if (!operator) throw new NotFoundError("Workspace");
+  if (!canManageWorkspace(operator.role)) throw new ForbiddenError();
+
+  // Step 2: 按 email 查找目标用户
+  const targetUser = await prisma.user.findUnique({
+    where: { email: input.email },
+  });
+  if (!targetUser) {
+    throw new AppError("USER_NOT_FOUND", "User with this email does not exist.", 404);
+  }
+
+  // Step 3: 创建成员关系
+  await prisma.workspaceMember.create({
+    data: {
+      workspaceId,
+      userId: targetUser.id,
+      role: input.role,
+    },
+  });
 }
 
 // ============================================================
-// TODO：removeMember — 移除成员（仅 OWNER）
+// removeMember — 移除成员（仅 OWNER）
 // ============================================================
 
-/**
- * 流程：
- * 1. 检查 actorId 是 OWNER
- * 2. 不允许移除最后一个 OWNER（防止 workspace 无人管理）
- * 3. prisma.workspaceMember.delete
- */
 export async function removeMember(
   workspaceId: string,
   memberId: string,
   actorId: string
 ): Promise<void> {
-  // TODO: 实现
-  throw new Error("Not implemented");
+  // Step 1: 验证操作者是 OWNER
+  const operator = await prisma.workspaceMember.findUnique({
+    where: { workspaceId_userId: { workspaceId, userId: actorId } },
+  });
+  if (!operator) throw new NotFoundError("Workspace");
+  if (!canManageWorkspace(operator.role)) throw new ForbiddenError();
+
+  // Step 2: 防删最后一个 OWNER
+  const ownerCount = await prisma.workspaceMember.count({
+    where: { workspaceId, role: "OWNER" },
+  });
+
+  // 检查被删的是否是 OWNER
+  const target = await prisma.workspaceMember.findUnique({
+    where: { id: memberId },
+  });
+  if (!target) throw new NotFoundError("Member");
+
+  if (target.role === "OWNER" && ownerCount <= 1) {
+    throw new AppError(
+      "LAST_OWNER",
+      "Cannot remove the last owner of a workspace.",
+      400
+    );
+  }
+
+  // Step 3: 删除
+  await prisma.workspaceMember.delete({ where: { id: memberId } });
 }

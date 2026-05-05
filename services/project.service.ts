@@ -7,6 +7,28 @@
  * - 权限：OWNER/MEMBER 可创建和编辑，仅 OWNER 可删除
  *
  * 设计文档参考：Section 8.3 (Project 模块), Section 16 (权限设计)
+ *
+ * ============================================================
+ * 本文件中的 CRUD 模式
+ * ============================================================
+ *
+ * 模式 A：getMembership — 检查用户在 workspace 中的身份。
+ *   所有方法的第一步都是它：const member = await getMembership(workspaceId, actorId)
+ *   返回 member.role，后续用 canCreateProject / canDeleteProject 判断。
+ *
+ * 模式 B：查 project → 取 workspaceId → 验成员资格。
+ *   getProjectById / updateProject / deleteProject 都遵循：
+ *   1. prisma.project.findUnique({ where: { id } }) 拿到 project.workspaceId
+ *   2. getMembership(project.workspaceId, actorId) 验权限
+ *   3. 执行实际操作（update / delete）
+ *
+ * 模式 C：DTO 转换 — Date → ISO string，description 可能为 null。
+ *
+ * 与 task.service.ts 的对应关系：
+ *   - createProject ≈ createTask（先验成员，再创建）
+ *   - updateProject ≈ updateTask（查 project → 验权限 → update）
+ *   - deleteProject ≈ deleteTask（查 project → 验权限 → delete）
+ *   - listProjects ≈ listMyWorkspaces（从某个 scope 查列表）
  */
 
 import { prisma } from "@/lib/prisma";
@@ -31,21 +53,22 @@ function canDeleteProject(role: WorkspaceRole): boolean {
   return role === "OWNER";
 }
 
+/** OWNER 或 MEMBER 都能编辑 */
+function canUpdateProject(role: WorkspaceRole): boolean {
+  return role === "OWNER" || role === "MEMBER";
+}
+
 // ============================================================
-// 公共辅助：获取用户在 workspace 中的成员资格
+// 公共辅助：获取用户在 workspace 中的成员资格（模式 A）
 // ============================================================
 
 /**
- * 这是 PROJECT 和 TASK SERVICE 都需要的核心查询模式：
- * 通过 userId + workspaceId 在 WorkspaceMember 表中查找成员资格。
- * 如果不存在 → 404（你无权访问这个 workspace）
- *
- * 返回 member.role 供后续权限判断使用。
+ * 与 workspace.service.ts 的模式 A 相同：通过 @@unique 复合键查成员表。
+ * Prisma 自动为 @@unique([workspaceId, userId]) 生成 workspaceId_userId 键名。
  */
 async function getMembership(workspaceId: string, actorId: string) {
   const member = await prisma.workspaceMember.findUnique({
     where: {
-      // Prisma 对 @@unique 字段组合自动生成这个复合键名
       workspaceId_userId: { workspaceId, userId: actorId },
     },
   });
@@ -56,28 +79,24 @@ async function getMembership(workspaceId: string, actorId: string) {
 }
 
 // ============================================================
-// 示例：createProject — 创建项目（完整实现）
+// createProject — 创建项目（完整实现，模式 A 演示）
 // ============================================================
 
 /**
- * 创建项目流程：
- * 1. 验证 actorId 是目标 workspace 的成员
- * 2. 检查权限（OWNER 或 MEMBER 可创建）
- * 3. 创建 Project 记录
- * 4. 返回 ProjectDTO
+ * Prisma 方法：findUnique（查成员资格）+ create（写数据）
+ *
+ * 流程：getMembership → 判权限 → create → DTO 转换
  */
 export async function createProject(
   input: CreateProjectInput,
   actorId: string
 ): Promise<ProjectDTO> {
-  // Step 1 + 2: 获取成员资格并检查权限
   const member = await getMembership(input.workspaceId, actorId);
 
   if (!canCreateProject(member.role)) {
     throw new ForbiddenError();
   }
 
-  // Step 3: 创建项目
   const project = await prisma.project.create({
     data: {
       workspaceId: input.workspaceId,
@@ -86,7 +105,6 @@ export async function createProject(
     },
   });
 
-  // Step 4: 转换为 DTO（Date → ISO string）
   return {
     id: project.id,
     workspaceId: project.workspaceId,
@@ -98,76 +116,100 @@ export async function createProject(
 }
 
 // ============================================================
-// TODO：listProjects — 获取项目列表
+// listProjects — 获取项目列表
 // ============================================================
 
 /**
- * 1. 验证 actorId 是 workspace 的成员
- * 2. 查询该 workspace 下所有 project
+ * Prisma 方法：findUnique（查成员资格）+ findMany（查列表）
+ * 参考：workspace.service.ts 的 listMyWorkspaces（同样是查属于某范围的列表）
  *
- * Prisma 查询：
- *   await prisma.project.findMany({
- *     where: { workspaceId },
- *     orderBy: { createdAt: "desc" }
- *   });
+ * 流程：
+ * 1. getMembership(workspaceId, actorId) — 验证成员资格
+ * 2. prisma.project.findMany({ where: { workspaceId }, orderBy: { createdAt: "desc" } })
+ * 3. 每个 project 转为 ProjectDTO
+ *
+ * 调用的 Prisma 方法：findUnique, findMany
  */
 export async function listProjects(
   workspaceId: string,
   actorId: string
 ): Promise<ProjectDTO[]> {
-  // TODO: 实现
-  throw new Error("Not implemented");
+  throw new Error("Not implemented — 参考 createProject 的 getMembership + 上方注释");
 }
 
 // ============================================================
-// TODO：getProjectById — 获取项目详情
+// getProjectById — 获取项目详情
 // ============================================================
 
 /**
- * 1. 查找 project
- * 2. 通过 project.workspaceId 验证 actorId 是成员
- * 3. 返回 ProjectDTO
+ * Prisma 方法：findUnique（查 project）+ findUnique（查成员资格）
+ * 参考：task.service.ts 的 getTaskById（模式 B：先找资源 → 用其 workspaceId 验成员资格）
+ *
+ * 流程：
+ * 1. prisma.project.findUnique({ where: { id: projectId } })
+ *    → 不存在 throw NotFoundError("Project")
+ * 2. getMembership(project.workspaceId, actorId) — 验证用户属于此 workspace
+ * 3. DTO 转换
+ *
+ * 调用的 Prisma 方法：findUnique, findUnique
  */
 export async function getProjectById(
   projectId: string,
   actorId: string
 ): Promise<ProjectDTO> {
-  // TODO: 实现
-  throw new Error("Not implemented");
+  throw new Error("Not implemented — 参考上方注释");
 }
 
 // ============================================================
-// TODO：updateProject — 更新项目（OWNER 或 MEMBER）
+// updateProject — 更新项目
 // ============================================================
 
 /**
- * 1. 查找 project（获取 workspaceId）
- * 2. 获取成员资格 + 检查权限
- * 3. prisma.project.update({ where: { id }, data: input })
+ * Prisma 方法：findUnique（查 project → 得 workspaceId）
+ *            + findUnique（查成员资格）
+ *            + update（写数据）
+ * 参考：task.service.ts 的 updateTask（模式 B 完整流程）
+ *
+ * 流程：
+ * 1. prisma.project.findUnique({ where: { id: projectId } })
+ * 2. getMembership(project.workspaceId, actorId)
+ * 3. if (!canUpdateProject(member.role)) throw new ForbiddenError()
+ * 4. prisma.project.update({ where: { id }, data: { name, description } })
+ * 5. DTO 转换
+ *
+ * 调用的 Prisma 方法：findUnique, findUnique, update
  */
 export async function updateProject(
   projectId: string,
   input: UpdateProjectInput,
   actorId: string
 ): Promise<ProjectDTO> {
-  // TODO: 实现
-  throw new Error("Not implemented");
+  throw new Error("Not implemented — 参考 task.service.ts updateTask 和上方注释");
 }
 
 // ============================================================
-// TODO：deleteProject — 删除项目（仅 OWNER）
+// deleteProject — 删除项目（仅 OWNER）
 // ============================================================
 
 /**
- * 1. 查找 project（获取 workspaceId）
- * 2. 获取成员资格 + 检查 canDeleteProject
- * 3. prisma.project.delete({ where: { id } })
- * 4. 级联删除关联的 Task（Prisma onDelete: Cascade 自动处理）
+ * Prisma 方法：findUnique（查 project → 得 workspaceId）
+ *            + findUnique（查成员资格）
+ *            + delete（删数据）
+ * 参考：task.service.ts 的 deleteTask（模式 B → 判权限 → delete）
+ *
+ * 流程：
+ * 1. prisma.project.findUnique({ where: { id: projectId } })
+ * 2. getMembership(project.workspaceId, actorId)
+ * 3. if (!canDeleteProject(member.role)) throw new ForbiddenError()
+ *    —— 注意：这里用 canDeleteProject，不是 canUpdateProject！只有 OWNER 能删
+ * 4. prisma.project.delete({ where: { id } })
+ * 5. 返回 void（级联删除 Task 由 onDelete: Cascade 处理）
+ *
+ * 调用的 Prisma 方法：findUnique, findUnique, delete
  */
 export async function deleteProject(
   projectId: string,
   actorId: string
 ): Promise<void> {
-  // TODO: 实现
-  throw new Error("Not implemented");
+  throw new Error("Not implemented — 参考 task.service.ts deleteTask 和上方注释");
 }

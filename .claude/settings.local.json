@@ -24,7 +24,10 @@
       "Bash(pg_isready)",
       "Bash(pg_lsclusters)",
       "Bash(psql --version)",
-      "Bash(grep -v \"^$\")"
+      "Bash(grep -v \"^$\")",
+      "Read(//home/garry/.config/nvim/**)",
+      "Read(//home/garry/.config/nvim/lua/**)",
+      "Bash(npm list *)"
     ]
   }
 }
