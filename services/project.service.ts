@@ -134,7 +134,20 @@ export async function listProjects(
   workspaceId: string,
   actorId: string
 ): Promise<ProjectDTO[]> {
-  throw new Error("Not implemented — 参考 createProject 的 getMembership + 上方注释");
+  await getMembership(workspaceId, actorId);
+
+  const projects = await prisma.project.findMany({
+    where: { workspaceId }, orderBy: { createdAt: "desc" }
+  });
+
+  return projects.map((p) => ({
+    id: p.id,
+    workspaceId: p.workspaceId,
+    name: p.name,
+    description: p.description,
+    createdAt: p.createdAt.toISOString(),
+    updatedAt: p.updatedAt.toISOString(),
+  }));
 }
 
 // ============================================================
@@ -157,7 +170,19 @@ export async function getProjectById(
   projectId: string,
   actorId: string
 ): Promise<ProjectDTO> {
-  throw new Error("Not implemented — 参考上方注释");
+  const projects = await prisma.project.findUnique({ where: { id: projectId } });
+  if (!projects) throw new NotFoundError("Project Not Founded");
+
+  await getMembership(projects.workspaceId, actorId);
+
+  return {
+    id: projects.id,
+    workspaceId: projects.workspaceId,
+    name: projects.name,
+    description: projects.description,
+    createdAt: projects.createdAt.toISOString(),
+    updatedAt: projects.updatedAt.toISOString(),
+  };
 }
 
 // ============================================================
@@ -184,7 +209,25 @@ export async function updateProject(
   input: UpdateProjectInput,
   actorId: string
 ): Promise<ProjectDTO> {
-  throw new Error("Not implemented — 参考 task.service.ts updateTask 和上方注释");
+  const projects = await prisma.project.findUnique({ where: { id: projectId } });
+  if (!projects) throw new NotFoundError("Project Not Founded");
+  const member = await getMembership(projects.workspaceId, actorId);
+
+  if (!canUpdateProject(member.role)) throw new ForbiddenError();
+
+  const updated = await prisma.project.update({
+    where: { id: projectId },
+    data: { name: input.name, description: input.description },
+  });
+
+  return {
+    id: updated.id,
+    workspaceId: updated.workspaceId,
+    name: updated.name,
+    description: updated.description,
+    createdAt: updated.createdAt.toISOString(),
+    updatedAt: updated.updatedAt.toISOString(),
+  };
 }
 
 // ============================================================
@@ -211,5 +254,11 @@ export async function deleteProject(
   projectId: string,
   actorId: string
 ): Promise<void> {
-  throw new Error("Not implemented — 参考 task.service.ts deleteTask 和上方注释");
+  const projects = await prisma.project.findUnique({ where: { id: projectId } });
+  if (!projects) throw new NotFoundError("Project Not Founded");
+  const member = await getMembership(projects.workspaceId, actorId);
+
+  if (!canDeleteProject(member.role)) throw new ForbiddenError();
+
+  await prisma.project.delete({ where: { id: projectId } });
 }

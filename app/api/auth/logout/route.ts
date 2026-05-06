@@ -10,16 +10,16 @@
  */
 
 import { NextRequest, NextResponse } from "next/server";
-import { ok, fail } from "@/lib/api-response";
+import { fail } from "@/lib/api-response";
 import { requireUser } from "@/lib/auth";
+import { logout } from "@/services/auth.service";
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await requireUser();
+    await requireUser();
 
-    // TODO: 实现 logout service 后，调用它会话删除
-    // const sessionId = req.cookies.get("session_id")?.value;
-    // if (sessionId) await logout(sessionId);
+    const sessionId = req.cookies.get("session_id")?.value;
+    if (sessionId) await logout(sessionId);
 
     // 清除 cookie —— 无论 session 是否存在都执行
     const response = NextResponse.json(

@@ -14,23 +14,27 @@ import { NextRequest } from "next/server";
 import { ok, fail } from "@/lib/api-response";
 import { requireUser } from "@/lib/auth";
 import { createProjectSchema } from "@/schemas/project.schema";
-import { listProjects, createProject } from "@/services/project.service";
+import { createProject } from "@/services/project.service";
 
 // ============================================================
 // GET /api/projects?workspaceId=xxx
 // ============================================================
+
+/**
+ * 实现流程：
+ * 1. requireUser()
+ * 2. req.nextUrl.searchParams.get("workspaceId") 读查询参数
+ * 3. 无 workspaceId → 返回空列表 ok([])
+ * 4. 调 listProjects(workspaceId, user.id)
+ * 5. 返回 ok(projects)
+ *
+ * 依赖：你补完 project.service.ts 的 listProjects 后即通
+ * 参考：app/api/workspaces/route.ts 的 GET 写法
+ */
 export async function GET(req: NextRequest) {
   try {
-    const user = await requireUser();
-
-    // 从 URL 查询参数中读取 workspaceId
-    const workspaceId = req.nextUrl.searchParams.get("workspaceId");
-    if (!workspaceId) {
-      return ok([]); // 无 workspaceId 时返回空列表
-    }
-
-    const projects = await listProjects(workspaceId, user.id);
-    return ok(projects);
+    // TODO: 按上方流程实现
+    throw new Error("Not implemented — 补完 project.service.ts 的 listProjects 后实现");
   } catch (error) {
     return fail(error as Error);
   }

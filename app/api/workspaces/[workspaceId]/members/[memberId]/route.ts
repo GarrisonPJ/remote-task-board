@@ -3,11 +3,14 @@
  *
  * 仅 OWNER 可移除成员。不能移除最后一个 OWNER。
  *
- * TODO: 等你实现 workspace.service.ts 的 removeMember() 方法后即可工作。
+ * 实现流程：
+ * 1. requireUser() 获取操作者
+ * 2. 从 params 取 workspaceId 和 memberId（动态路由两个参数）
+ * 3. 调 removeMember(workspaceId, memberId, user.id)
+ * 4. 返回 ok(null)
  *
- * 动态路由参数：
- *   同时使用了 [workspaceId] 和 [memberId]，两个都从 params 获取：
- *   const { workspaceId, memberId } = await params;
+ * 调用的 Prisma 方法（在 service 中）：findUnique（查权限）、count（防删最后一个OWNER）、delete（删成员）
+ * 参考：app/api/workspaces/[workspaceId]/route.ts 的 DELETE 写法
  */
 
 import { NextRequest } from "next/server";
@@ -20,10 +23,8 @@ export async function DELETE(
   { params }: { params: Promise<{ workspaceId: string; memberId: string }> }
 ) {
   try {
-    const user = await requireUser();
-    const { workspaceId, memberId } = await params;
-    await removeMember(workspaceId, memberId, user.id);
-    return ok(null);
+    // TODO: 按上方流程实现
+    throw new Error("Not implemented");
   } catch (error) {
     return fail(error as Error);
   }

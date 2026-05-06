@@ -139,6 +139,9 @@ export async function login(input: LoginInput): Promise<{
 export async function logout(sessionId: string): Promise<void> {
   // TODO: 用 prisma.session.deleteMany 删除 session（where: { id: sessionId }）
   // 提示：用 deleteMany 而不是 delete，因为 session 可能已经被删除，delete 会抛异常
+  await prisma.session.deleteMany({
+    where: { id: sessionId }
+  });
 }
 
 // ============================================================
@@ -168,5 +171,15 @@ export async function logout(sessionId: string): Promise<void> {
  */
 export async function getCurrentUser(sessionId: string): Promise<UserDTO | null> {
   // TODO: 实现上述查询逻辑
-  return null;
+  const session = await prisma.session.findUnique({
+    where: { id: sessionId },
+    include: {
+      user: {
+        select: { id: true, name: true, email: true }
+      }
+    }
+  });
+  if (!session || session.expiresAt < new Date()) return null;
+
+  return session.user;
 }
