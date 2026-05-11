@@ -62,7 +62,7 @@ type TaskStatus = "TODO" | "IN_PROGRESS" | "IN_REVIEW" | "DONE" | "CANCELED";
  * 示例：TODO 只能转为 IN_PROGRESS 或 CANCELED
  *       DONE 只能转为 IN_REVIEW（被驳回重新审查）
  */
-const VALID_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
+export const VALID_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
   TODO: ["IN_PROGRESS", "CANCELED"],
   IN_PROGRESS: ["IN_REVIEW", "CANCELED", "TODO"],
   IN_REVIEW: ["DONE", "IN_PROGRESS", "CANCELED"],
@@ -74,18 +74,18 @@ const VALID_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
 // 权限辅助函数（设计文档 Section 16.3）
 // ============================================================
 
-function canCreateTask(role: WorkspaceRole): boolean {
+export function canCreateTask(role: WorkspaceRole): boolean {
   return role === "OWNER" || role === "MEMBER";
 }
 
-function canUpdateTask(role: WorkspaceRole): boolean {
+export function canUpdateTask(role: WorkspaceRole): boolean {
   return role === "OWNER" || role === "MEMBER";
 }
 
 /**
  * 删除权限：OWNER 全面，MEMBER 只能删除自己创建的任务
  */
-function canDeleteTask(role: WorkspaceRole, creatorId: string, actorId: string): boolean {
+export function canDeleteTask(role: WorkspaceRole, creatorId: string, actorId: string): boolean {
   if (role === "OWNER") return true;
   if (role === "MEMBER") return creatorId === actorId;
   return false;
@@ -95,7 +95,7 @@ function canDeleteTask(role: WorkspaceRole, creatorId: string, actorId: string):
  * 状态变更权限：OWNER 全面，MEMBER 只有自己是 assignee 时才能改
  * 注意：assigneeId 可能为 null（任务未分配），此时 MEMBER 不能改
  */
-function canUpdateTaskStatus(
+export function canUpdateTaskStatus(
   role: WorkspaceRole,
   assigneeId: string | null,
   actorId: string
