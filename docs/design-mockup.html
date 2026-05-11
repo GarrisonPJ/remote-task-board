@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Remote Task Board — Phase 3 UI Mockup</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --bg2: #1a1d27;
+    --bg3: #242836;
+    --border: #2e3345;
+    --text: #e4e8f1;
+    --text2: #959bb0;
+    --text3: #6b7084;
+    --primary: #7c8aff;
+    --primary-bg: #7c8aff18;
+    --success: #4ade80;
+    --success-bg: #4ade8018;
+    --warning: #fbbf24;
+    --warning-bg: #fbbf2418;
+    --danger: #f87171;
+    --danger-bg: #f8717120;
+    --urgent: #fb923c;
+    --sidebar-w: 240px;
+    --radius: 8px;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background: #0a0c13; color: var(--text); font-family: var(--font); line-height:1.5; }
+  h1 { font-size:1.5rem; font-weight:700; }
+  h2 { font-size:1.1rem; font-weight:600; }
+  a { color: var(--primary); text-decoration:none; }
+
+  /* Layout */
+  .page-header {
+    padding: 40px 48px 0;
+    max-width: 1200px; margin: 0 auto;
+  }
+  .page-header h1 { font-size:1.8rem; margin-bottom:4px; }
+  .page-header p { color:var(--text2); font-size:.9rem; }
+  .divider { border:none; border-top:1px solid var(--border); margin:32px 0; }
+
+  .preview-section {
+    padding: 0 48px 48px; max-width:1200px; margin:0 auto;
+  }
+  .preview-label {
+    display:flex; align-items:center; gap:8px; margin-bottom:20px;
+  }
+  .preview-label span { background:var(--primary-bg); color:var(--primary); padding:2px 10px; border-radius:12px; font-size:.75rem; font-weight:600; }
+  .preview-label h2 { font-size:1.05rem; }
+
+  /* Browser chrome */
+  .browser-frame {
+    background:var(--bg2); border:1px solid var(--border); border-radius:12px; overflow:hidden;
+    box-shadow: 0 4px 32px rgba(0,0,0,.4);
+  }
+  .browser-topbar {
+    background:var(--bg3); padding:10px 16px; display:flex; gap:8px; align-items:center;
+    border-bottom:1px solid var(--border);
+  }
+  .browser-dot { width:10px; height:10px; border-radius:50%; }
+  .browser-dot.r { background:#f87171; } .browser-dot.y { background:#fbbf24; } .browser-dot.g { background:#4ade80; }
+  .browser-url {
+    flex:1; margin:0 16px; background:var(--bg); border-radius:6px; padding:4px 12px;
+    font-size:.75rem; color:var(--text3);
+  }
+  .browser-body { display:flex; min-height:520px; }
+
+  /* Sidebar */
+  .sidebar {
+    width:var(--sidebar-w); background:var(--bg2); border-right:1px solid var(--border);
+    padding:20px 16px; display:flex; flex-direction:column; gap:6px; flex-shrink:0;
+  }
+  .sidebar-brand { font-weight:700; font-size:.95rem; margin-bottom:12px; color:var(--text); }
+  .sidebar-nav {
+    display:flex; flex-direction:column; gap:2px;
+  }
+  .sidebar-link {
+    padding:8px 12px; border-radius:6px; font-size:.85rem; color:var(--text2);
+    transition: background .15s;
+  }
+  .sidebar-link:hover, .sidebar-link.active { background:var(--bg3); color:var(--text); }
+  .sidebar-section { font-size:.7rem; color:var(--text3); text-transform:uppercase; letter-spacing:.05em; padding:16px 12px 6px; }
+  .sidebar-footer { margin-top:auto; padding-top:12px; border-top:1px solid var(--border); }
+  .sidebar-user { font-size:.8rem; font-weight:600; }
+  .sidebar-role { font-size:.7rem; color:var(--text3); }
+
+  /* Main content */
+  .main-content { flex:1; padding:28px 32px; overflow-y:auto; background:var(--bg); }
+
+  /* Stats row */
+  .stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:28px; }
+  .stat-card {
+    background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius);
+    padding:16px 20px;
+  }
+  .stat-card .stat-value { font-size:1.6rem; font-weight:700; }
+  .stat-card .stat-label { font-size:.78rem; color:var(--text2); margin-top:2px; }
+  .stat-card .stat-icon { font-size:1.2rem; margin-bottom:4px; }
+
+  /* Two-column */
+  .two-col { display:grid; grid-template-columns:1fr 300px; gap:24px; }
+
+  /* Cards */
+  .card {
+    background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius);
+    padding:20px;
+  }
+  .card h2 { margin-bottom:16px; font-size:1rem; }
+
+  /* Task detail layout */
+  .detail-layout { display:flex; gap:24px; }
+  .detail-main { flex:1; }
+  .detail-sidebar { width:260px; flex-shrink:0; display:flex; flex-direction:column; gap:16px; }
+
+  /* Property list */
+  .prop-list { display:flex; flex-direction:column; gap:12px; }
+  .prop-item {}
+  .prop-label { font-size:.75rem; color:var(--text3); text-transform:uppercase; letter-spacing:.03em; margin-bottom:2px; }
+  .prop-value { font-size:.9rem; }
+  .prop-value img.avatar { width:20px; height:20px; border-radius:50%; vertical-align:middle; margin-right:6px; }
+
+  /* Badges */
+  .badge {
+    display:inline-flex; align-items:center; padding:3px 10px; border-radius:12px;
+    font-size:.75rem; font-weight:600;
+  }
+  .badge-primary { background:var(--primary-bg); color:var(--primary); }
+  .badge-success { background:var(--success-bg); color:var(--success); }
+  .badge-warning { background:var(--warning-bg); color:var(--warning); }
+  .badge-danger { background:var(--danger-bg); color:var(--danger); }
+  .badge-urgent { background:#fb923c20; color:var(--urgent); }
+  .badge-neutral { background:var(--bg3); color:var(--text2); }
+
+  /* Buttons */
+  .btn {
+    display:inline-flex; align-items:center; gap:6px; padding:8px 16px;
+    border-radius:6px; font-size:.85rem; font-weight:500; border:1px solid var(--border);
+    background:var(--bg); color:var(--text); cursor:pointer; transition:all .15s;
+  }
+  .btn:hover { background:var(--bg3); }
+  .btn-primary { background:var(--primary); border-color:var(--primary); color:#fff; }
+  .btn-primary:hover { background:#6b7aee; }
+  .btn-danger { color:var(--danger); border-color:var(--danger-bg); }
+  .btn-danger:hover { background:var(--danger-bg); }
+  .btn-ghost { border-color:transparent; background:transparent; }
+  .btn-sm { padding:5px 10px; font-size:.78rem; }
+  .btn-group { display:flex; gap:6px; }
+
+  /* Table */
+  .table-wrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:.85rem; }
+  th { text-align:left; padding:10px 12px; border-bottom:1px solid var(--border); color:var(--text3); font-weight:500; font-size:.75rem; text-transform:uppercase; letter-spacing:.03em; }
+  td { padding:10px 12px; border-bottom:1px solid var(--border); }
+  tr:hover td { background:var(--bg3); }
+  .task-title { font-weight:600; }
+  .task-title a { color:var(--text); }
+
+  /* Timeline */
+  .timeline { position:relative; padding-left:20px; }
+  .timeline::before { content:''; position:absolute; left:6px; top:4px; bottom:4px; width:1px; background:var(--border); }
+  .tl-item { position:relative; padding-bottom:16px; }
+  .tl-dot { position:absolute; left:-17px; top:4px; width:8px; height:8px; border-radius:50%; background:var(--text3); border:2px solid var(--bg2); }
+  .tl-item:first-child .tl-dot { background:var(--primary); }
+  .tl-text { font-size:.82rem; }
+  .tl-text strong { font-weight:600; }
+  .tl-time { font-size:.72rem; color:var(--text3); margin-top:2px; }
+  .tl-badge { display:inline-block; padding:1px 6px; border-radius:4px; font-size:.7rem; margin:0 4px; }
+
+  /* Filter bar */
+  .filter-bar { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:20px; align-items:center; }
+  .filter-input {
+    background:var(--bg); border:1px solid var(--border); border-radius:6px;
+    padding:7px 12px; color:var(--text); font-size:.85rem; outline:none; min-width:200px;
+  }
+  .filter-input:focus { border-color:var(--primary); }
+  .filter-select {
+    background:var(--bg); border:1px solid var(--border); border-radius:6px;
+    padding:7px 12px; color:var(--text); font-size:.85rem; outline:none; cursor:pointer;
+  }
+  .filter-count { margin-left:auto; font-size:.8rem; color:var(--text3); }
+
+  /* Section header */
+  .section-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+  .section-header h2 { margin-bottom:0; }
+
+  /* Member list */
+  .member-row { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid var(--border); }
+  .member-row:last-child { border-bottom:none; }
+  .member-info { display:flex; align-items:center; gap:10px; }
+  .member-avatar { width:32px; height:32px; border-radius:50%; background:var(--bg3); display:flex; align-items:center; justify-content:center; font-size:.8rem; font-weight:700; color:var(--primary); }
+  .member-name { font-weight:600; font-size:.85rem; }
+  .member-email { font-size:.78rem; color:var(--text2); }
+
+  /* Add member form */
+  .add-member-form { display:flex; gap:6px; align-items:flex-end; padding-bottom:12px; border-bottom:1px solid var(--border); margin-bottom:12px; }
+  .add-member-form input { flex:1; min-width:140px; }
+  .add-member-form select { width:110px; }
+
+  /* Description box */
+  .desc-box { background:var(--bg); border:1px solid var(--border); border-radius:var(--radius); padding:14px; font-size:.88rem; color:var(--text2); white-space:pre-wrap; margin-top:12px; }
+
+  /* Permission demo */
+  .perm-demo { display:flex; gap:10px; flex-wrap:wrap; }
+  .perm-chip {
+    padding:4px 12px; border-radius:12px; font-size:.78rem; font-weight:600; cursor:default;
+    border:1px solid var(--border); background:var(--bg2); color:var(--text2);
+  }
+  .perm-chip.active { background:var(--primary-bg); color:var(--primary); border-color:var(--primary); }
+
+  /* Empty state */
+  .empty-state { text-align:center; padding:40px 20px; color:var(--text3); }
+  .empty-state .empty-icon { font-size:2rem; margin-bottom:8px; }
+  .empty-state p { font-size:.85rem; }
+
+  /* Responsive hint */
+  @media (max-width: 768px) {
+    .two-col { grid-template-columns:1fr; }
+    .detail-layout { flex-direction:column; }
+    .detail-sidebar { width:100%; }
+    .stats-row { grid-template-columns:repeat(2,1fr); }
+  }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Remote Task Board — Phase 3 UI Mockup</h1>
+  <p>Layer 2 预期效果：权限对齐 + 状态控件 + 后台列表 + 活动时间线 + 成员管理</p>
+</div>
+
+<!-- ============================================================ -->
+<!-- PAGE 1: Dashboard (OWNER view)                                -->
+<!-- ============================================================ -->
+<div class="preview-section">
+<div class="preview-label"><span>PAGE 1</span> <h2>Dashboard — Stats + Recent Tasks + Activity Feed (OWNER)</h2></div>
+
+<div class="browser-frame">
+<div class="browser-topbar">
+  <div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div>
+  <div class="browser-url">localhost:3000/dashboard</div>
+</div>
+<div class="browser-body">
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">Remote Task Board</div>
+    <nav class="sidebar-nav">
+      <a class="sidebar-link active">Dashboard</a>
+    </nav>
+    <div class="sidebar-section">Workspaces</div>
+    <nav class="sidebar-nav">
+      <a class="sidebar-link">Alice's Workspace</a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-user">Alice</div>
+      <div class="sidebar-role">OWNER</div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main-content">
+    <h1>Dashboard</h1>
+    <p style="color:var(--text2);font-size:.9rem;margin-top:2px;">Welcome back, Alice</p>
+
+    <!-- Stats -->
+    <div class="stats-row" style="margin-top:24px;">
+      <div class="stat-card">
+        <div class="stat-icon">&#x1f465;</div>
+        <div class="stat-value">1</div>
+        <div class="stat-label">Workspaces</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">&#x1f4c1;</div>
+        <div class="stat-value">2</div>
+        <div class="stat-label">Projects</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">&#x1f4cb;</div>
+        <div class="stat-value">5</div>
+        <div class="stat-label">Open Tasks</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">&#x1f50d;</div>
+        <div class="stat-value">1</div>
+        <div class="stat-label">In Review</div>
+      </div>
+    </div>
+
+    <!-- Two column -->
+    <div class="two-col">
+      <!-- Recent Tasks -->
+      <div class="card">
+        <div class="section-header">
+          <h2>Recent Tasks</h2>
+          <a style="font-size:.82rem;" href="#">View all &rarr;</a>
+        </div>
+        <table>
+          <tr><th>Task</th><th>Status</th><th>Priority</th><th>Assignee</th></tr>
+          <tr>
+            <td class="task-title"><a href="#">API rate limiting</a></td>
+            <td><span class="badge badge-success">In Progress</span></td>
+            <td><span class="badge badge-urgent">High</span></td>
+            <td>Alice</td>
+          </tr>
+          <tr>
+            <td class="task-title"><a href="#">Fix login redirect</a></td>
+            <td><span class="badge badge-primary">In Review</span></td>
+            <td><span class="badge badge-warning">Medium</span></td>
+            <td>Bob</td>
+          </tr>
+          <tr>
+            <td class="task-title"><a href="#">Update README</a></td>
+            <td><span class="badge badge-neutral">To Do</span></td>
+            <td><span class="badge badge-neutral">Low</span></td>
+            <td>&mdash;</td>
+          </tr>
+          <tr>
+            <td class="task-title"><a href="#">Add seed data script</a></td>
+            <td><span class="badge badge-success">Done</span></td>
+            <td><span class="badge badge-warning">Medium</span></td>
+            <td>Alice</td>
+          </tr>
+          <tr>
+            <td class="task-title"><a href="#">Design system tokens</a></td>
+            <td><span class="badge badge-neutral">To Do</span></td>
+            <td><span class="badge badge-urgent">High</span></td>
+            <td>Bob</td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- Activity Feed -->
+      <div class="card">
+        <h2>Recent Activity</h2>
+        <div class="timeline">
+          <div class="tl-item">
+            <div class="tl-dot"></div>
+            <div class="tl-text"><strong>Alice</strong> changed status <span class="tl-badge badge-neutral">To Do</span> &rarr; <span class="tl-badge badge-success">In Progress</span></div>
+            <div class="tl-time">2 minutes ago</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot"></div>
+            <div class="tl-text"><strong>Bob</strong> changed status <span class="tl-badge badge-success">In Progress</span> &rarr; <span class="tl-badge badge-primary">In Review</span></div>
+            <div class="tl-time">1 hour ago</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot"></div>
+            <div class="tl-text"><strong>Alice</strong> created task <em>API rate limiting</em></div>
+            <div class="tl-time">3 hours ago</div>
+          </div>
+          <div class="tl-item">
+            <div class="tl-dot"></div>
+            <div class="tl-text"><strong>Alice</strong> assigned <em>Fix login redirect</em> to <strong>Bob</strong></div>
+            <div class="tl-time">Yesterday</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+</div>
+</div>
+
+<hr class="divider">
+
+<!-- ============================================================ -->
+<!-- PAGE 2: Task List (table layout)                              -->
+<!-- ============================================================ -->
+<div class="preview-section">
+<div class="preview-label"><span>PAGE 2</span> <h2>Task List — Table layout + Filter toolbar</h2></div>
+
+<div class="browser-frame">
+<div class="browser-topbar">
+  <div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div>
+  <div class="browser-url">localhost:3000/tasks?workspaceId=...&amp;status=TODO&amp;priority=HIGH</div>
+</div>
+<div class="browser-body">
+  <aside class="sidebar">
+    <div class="sidebar-brand">Remote Task Board</div>
+    <nav class="sidebar-nav"><a class="sidebar-link">Dashboard</a></nav>
+    <div class="sidebar-section">Workspaces</div>
+    <nav class="sidebar-nav"><a class="sidebar-link">Alice's Workspace</a></nav>
+    <div class="sidebar-footer"><div class="sidebar-user">Alice</div><div class="sidebar-role">OWNER</div></div>
+  </aside>
+
+  <main class="main-content">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <div>
+        <h1>Tasks</h1>
+        <p style="color:var(--text2);font-size:.82rem;margin-top:2px;">
+          <a href="#">Dashboard</a> / Tasks
+        </p>
+      </div>
+      <button class="btn btn-primary">+ New Task</button>
+    </div>
+
+    <!-- Filter bar -->
+    <div class="filter-bar">
+      <input class="filter-input" placeholder="Search tasks..." value="API">
+      <select class="filter-select">
+        <option>All Statuses</option>
+        <option selected>To Do</option>
+        <option>In Progress</option>
+        <option>In Review</option>
+        <option>Done</option>
+        <option>Canceled</option>
+      </select>
+      <select class="filter-select">
+        <option>All Priorities</option>
+        <option selected>High</option>
+        <option>Medium</option>
+        <option>Low</option>
+        <option>Urgent</option>
+      </select>
+      <select class="filter-select">
+        <option>All Assignees</option>
+        <option>Alice</option>
+        <option>Bob</option>
+      </select>
+      <span class="filter-count">2 tasks found</span>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:35%">Title</th>
+            <th>Status</th>
+            <th>Priority</th>
+            <th>Assignee</th>
+            <th>Project</th>
+            <th>Updated</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="task-title"><a href="#">API rate limiting</a></td>
+            <td><span class="badge badge-neutral">To Do</span></td>
+            <td><span class="badge badge-urgent">High</span></td>
+            <td>Alice</td>
+            <td style="color:var(--text2);font-size:.82rem;">Backend API</td>
+            <td style="color:var(--text3);font-size:.8rem;">2h ago</td>
+          </tr>
+          <tr>
+            <td class="task-title"><a href="#">Design system tokens</a></td>
+            <td><span class="badge badge-neutral">To Do</span></td>
+            <td><span class="badge badge-urgent">High</span></td>
+            <td>Bob</td>
+            <td style="color:var(--text2);font-size:.82rem;">Frontend UI</td>
+            <td style="color:var(--text3);font-size:.8rem;">1d ago</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-top:20px;">
+      <button class="btn btn-sm" disabled>&larr; Previous</button>
+      <button class="btn btn-sm btn-primary">1</button>
+      <button class="btn btn-sm">Next &rarr;</button>
+    </div>
+  </main>
+</div>
+</div>
+</div>
+
+<hr class="divider">
+
+<!-- ============================================================ -->
+<!-- PAGE 3: Task Detail                                           -->
+<!-- ============================================================ -->
+<div class="preview-section">
+<div class="preview-label"><span>PAGE 3</span> <h2>Task Detail — Sidebar layout + Status control + Activity timeline (ASSIGNEE)</h2></div>
+
+<div class="browser-frame">
+<div class="browser-topbar">
+  <div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div>
+  <div class="browser-url">localhost:3000/tasks/cm0x...</div>
+</div>
+<div class="browser-body">
+  <aside class="sidebar">
+    <div class="sidebar-brand">Remote Task Board</div>
+    <nav class="sidebar-nav"><a class="sidebar-link">Dashboard</a></nav>
+    <div class="sidebar-section">Workspaces</div>
+    <nav class="sidebar-nav"><a class="sidebar-link">Alice's Workspace</a></nav>
+    <div class="sidebar-footer"><div class="sidebar-user">Bob</div><div class="sidebar-role">MEMBER</div></div>
+  </aside>
+
+  <main class="main-content">
+    <!-- Breadcrumb -->
+    <p style="font-size:.82rem;color:var(--text2);margin-bottom:4px;">
+      <a href="#">Dashboard</a> / <a href="#">Backend API</a> / API rate limiting
+    </p>
+
+    <!-- Title + Actions -->
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:16px;">
+      <h1>API rate limiting</h1>
+      <div class="btn-group">
+        <!-- Bob is assignee: sees status control -->
+        <button class="btn btn-sm btn-primary">&#x21C5; Change Status</button>
+        <!-- Bob is NOT creator: no delete button shown -->
+        <button class="btn btn-sm">&#x270E; Edit</button>
+      </div>
+    </div>
+
+    <!-- Status control widget -->
+    <div style="display:flex;gap:6px;align-items:center;margin-bottom:24px;padding:10px 14px;background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);">
+      <span style="font-size:.82rem;color:var(--text2);margin-right:8px;">Current: <span class="badge badge-neutral">To Do</span></span>
+      <span style="font-size:.82rem;color:var(--text3);">&rarr;</span>
+      <span style="font-size:.78rem;color:var(--text2);margin-right:4px;">Move to:</span>
+      <button class="btn btn-sm btn-primary">In Progress</button>
+      <button class="btn btn-sm">Cancel</button>
+    </div>
+
+    <!-- Detail layout -->
+    <div class="detail-layout">
+      <!-- Left: description + activity -->
+      <div class="detail-main">
+        <div class="card" style="margin-bottom:20px;">
+          <h2>Description</h2>
+          <div class="desc-box">
+            Implement rate limiting middleware for all public API endpoints.
+            Use token bucket algorithm with Redis-backed counters.
+
+            Acceptance criteria:
+            - 100 req/min per user by default
+            - Configurable per workspace
+            - Return 429 with Retry-After header
+          </div>
+        </div>
+
+        <!-- Activity timeline -->
+        <div class="card">
+          <h2>Activity</h2>
+          <div class="timeline">
+            <div class="tl-item">
+              <div class="tl-dot"></div>
+              <div class="tl-text"><strong>Alice</strong> changed priority <span class="tl-badge badge-warning">Medium</span> &rarr; <span class="tl-badge badge-urgent">High</span></div>
+              <div class="tl-time">30 minutes ago</div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-dot"></div>
+              <div class="tl-text"><strong>Alice</strong> assigned to <strong>Bob</strong></div>
+              <div class="tl-time">1 hour ago</div>
+            </div>
+            <div class="tl-item">
+              <div class="tl-dot"></div>
+              <div class="tl-text"><strong>Alice</strong> created this task</div>
+              <div class="tl-time">Yesterday at 3:42 PM</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: properties sidebar -->
+      <div class="detail-sidebar">
+        <div class="card">
+          <h2 style="margin-bottom:12px;">Properties</h2>
+          <div class="prop-list">
+            <div class="prop-item">
+              <div class="prop-label">Status</div>
+              <div class="prop-value"><span class="badge badge-neutral">To Do</span></div>
+            </div>
+            <div class="prop-item">
+              <div class="prop-label">Priority</div>
+              <div class="prop-value"><span class="badge badge-urgent">High</span></div>
+            </div>
+            <div class="prop-item">
+              <div class="prop-label">Assignee</div>
+              <div class="prop-value"><div class="member-avatar" style="display:inline-flex;width:22px;height:22px;font-size:.7rem;">B</div> Bob</div>
+            </div>
+            <div class="prop-item">
+              <div class="prop-label">Creator</div>
+              <div class="prop-value"><div class="member-avatar" style="display:inline-flex;width:22px;height:22px;font-size:.7rem;">A</div> Alice</div>
+            </div>
+            <div class="prop-item">
+              <div class="prop-label">Due Date</div>
+              <div class="prop-value">May 15, 2026</div>
+            </div>
+            <div class="prop-item">
+              <div class="prop-label">Created</div>
+              <div class="prop-value" style="font-size:.82rem;color:var(--text2);">May 9, 2026</div>
+            </div>
+            <div class="prop-item">
+              <div class="prop-label">Updated</div>
+              <div class="prop-value" style="font-size:.82rem;color:var(--text2);">2 hours ago</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+</div>
+</div>
+
+<hr class="divider">
+
+<!-- ============================================================ -->
+<!-- PAGE 4: Workspace Detail                                      -->
+<!-- ============================================================ -->
+<div class="preview-section">
+<div class="preview-label"><span>PAGE 4</span> <h2>Workspace Detail — Member management + Project list (OWNER)</h2></div>
+
+<div class="browser-frame">
+<div class="browser-topbar">
+  <div class="browser-dot r"></div><div class="browser-dot y"></div><div class="browser-dot g"></div>
+  <div class="browser-url">localhost:3000/workspaces/cm0x...</div>
+</div>
+<div class="browser-body">
+  <aside class="sidebar">
+    <div class="sidebar-brand">Remote Task Board</div>
+    <nav class="sidebar-nav"><a class="sidebar-link">Dashboard</a></nav>
+    <div class="sidebar-section">Workspaces</div>
+    <nav class="sidebar-nav"><a class="sidebar-link active">Alice's Workspace</a></nav>
+    <div class="sidebar-footer"><div class="sidebar-user">Alice</div><div class="sidebar-role">OWNER</div></div>
+  </aside>
+
+  <main class="main-content">
+    <p style="font-size:.82rem;color:var(--text2);margin-bottom:4px;"><a href="#">Dashboard</a> / Alice's Workspace</p>
+    <h1>Alice's Workspace</h1>
+    <div style="display:flex;gap:16px;margin-top:6px;color:var(--text2);font-size:.82rem;">
+      <span>Role: <strong>OWNER</strong></span>
+      <span>2 Projects</span>
+      <span>5 Members</span>
+    </div>
+
+    <!-- Members section -->
+    <div class="card" style="margin-top:24px;">
+      <div class="section-header">
+        <h2>Members</h2>
+      </div>
+      <!-- Add member form (OWNER only) -->
+      <div class="add-member-form">
+        <input class="filter-input" placeholder="Email address" value="" style="flex:1;">
+        <select class="filter-select">
+          <option>Member</option>
+          <option>Viewer</option>
+        </select>
+        <button class="btn btn-primary btn-sm">Add</button>
+      </div>
+      <!-- Member rows -->
+      <div class="member-row">
+        <div class="member-info">
+          <div class="member-avatar">A</div>
+          <div>
+            <div class="member-name">Alice</div>
+            <div class="member-email">alice@test.com</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="badge badge-primary">OWNER</span>
+        </div>
+      </div>
+      <div class="member-row">
+        <div class="member-info">
+          <div class="member-avatar">B</div>
+          <div>
+            <div class="member-name">Bob</div>
+            <div class="member-email">bob@test.com</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="badge badge-warning">MEMBER</span>
+          <button class="btn btn-sm btn-danger">Remove</button>
+        </div>
+      </div>
+      <div class="member-row">
+        <div class="member-info">
+          <div class="member-avatar" style="background:var(--bg3);color:var(--text2);">C</div>
+          <div>
+            <div class="member-name">Carol</div>
+            <div class="member-email">carol@test.com</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span class="badge badge-neutral">VIEWER</span>
+          <button class="btn btn-sm btn-danger">Remove</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Projects section -->
+    <div class="card" style="margin-top:20px;">
+      <div class="section-header">
+        <h2>Projects</h2>
+        <button class="btn btn-primary btn-sm">+ New Project</button>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;">
+        <div style="padding:16px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);">
+          <div style="font-weight:600;margin-bottom:4px;"><a href="#">Backend API</a></div>
+          <div style="font-size:.78rem;color:var(--text2);">Core REST API development</div>
+          <div style="font-size:.72rem;color:var(--text3);margin-top:6px;">3 tasks &middot; Updated yesterday</div>
+        </div>
+        <div style="padding:16px;background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);">
+          <div style="font-weight:600;margin-bottom:4px;"><a href="#">Frontend UI</a></div>
+          <div style="font-size:.78rem;color:var(--text2);">Dashboard and component library</div>
+          <div style="font-size:.72rem;color:var(--text3);margin-top:6px;">2 tasks &middot; Updated 2 days ago</div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+</div>
+</div>
+
+<hr class="divider">
+
+<!-- ============================================================ -->
+<!-- PAGE 5: Permission demo                                      -->
+<!-- ============================================================ -->
+<div class="preview-section">
+<div class="preview-label"><span>PAGE 5</span> <h2>Permission Demo — Same Task Detail seen by OWNER vs MEMBER vs VIEWER</h2></div>
+
+<style>
+  .perm-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+  .perm-card {
+    background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:16px;
+  }
+  .perm-card h3 { font-size:.9rem; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+  .perm-card .actions { display:flex; flex-direction:column; gap:6px; margin-top:12px; }
+  .perm-card .action-row { display:flex; align-items:center; gap:8px; font-size:.8rem; }
+  .perm-icon-green { color:var(--success); }
+  .perm-icon-red { color:var(--danger); }
+</style>
+<div class="perm-grid">
+
+  <!-- OWNER -->
+  <div class="perm-card">
+    <h3><span class="badge badge-primary">OWNER</span> Alice</h3>
+    <p style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">全部操作均可执行</p>
+    <div class="actions">
+      <div class="action-row"><span class="perm-icon-green">&#x2713;</span> Edit task</div>
+      <div class="action-row"><span class="perm-icon-green">&#x2713;</span> Delete any task</div>
+      <div class="action-row"><span class="perm-icon-green">&#x2713;</span> Change status</div>
+      <div class="action-row"><span class="perm-icon-green">&#x2713;</span> Add/Remove members</div>
+      <div class="action-row"><span class="perm-icon-green">&#x2713;</span> Create projects</div>
+    </div>
+  </div>
+
+  <!-- MEMBER + creator -->
+  <div class="perm-card">
+    <h3><span class="badge badge-warning">MEMBER</span> Bob <span style="font-size:.7rem;color:var(--text3);">(creator &amp; assignee)</span></h3>
+    <p style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">自己的任务可删，被分配的任务可改状态</p>
+    <div class="actions">
+      <div class="action-row"><span class="perm-icon-green">&#x2713;</span> Edit task</div>
+      <div class="action-row"><span class="perm-icon-green">&#x2713;</span> Delete (own task)</div>
+      <div class="action-row"><span class="perm-icon-green">&#x2713;</span> Change status (assignee)</div>
+      <div class="action-row"><span class="perm-icon-red">&#x2717;</span> Add/Remove members</div>
+      <div class="action-row"><span class="perm-icon-green">&#x2713;</span> Create projects</div>
+    </div>
+  </div>
+
+  <!-- VIEWER -->
+  <div class="perm-card">
+    <h3><span class="badge badge-neutral">VIEWER</span> Carol</h3>
+    <p style="font-size:.78rem;color:var(--text2);margin-bottom:12px;">只读访问，不展示任何操作按钮</p>
+    <div class="actions">
+      <div class="action-row"><span class="perm-icon-red">&#x2717;</span> Edit (hidden)</div>
+      <div class="action-row"><span class="perm-icon-red">&#x2717;</span> Delete (hidden)</div>
+      <div class="action-row"><span class="perm-icon-red">&#x2717;</span> Change status (hidden)</div>
+      <div class="action-row"><span class="perm-icon-red">&#x2717;</span> Add/Remove members (hidden)</div>
+      <div class="action-row"><span class="perm-icon-red">&#x2717;</span> Create projects (hidden)</div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<div class="page-header" style="padding-bottom:60px;">
+  <hr class="divider">
+  <p style="color:var(--text3);text-align:center;font-size:.82rem;">
+    Remote Task Board — Phase 3 UI Mockup &middot; Dark theme &middot; Lightweight SaaS admin style
+  </p>
+</div>
+
+</body>
+</html>
