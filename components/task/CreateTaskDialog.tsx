@@ -13,9 +13,10 @@ import { TaskForm } from "@/components/task/TaskForm";
 
 type Props = {
   projectId: string;
+  workspaceId?: string;
 };
 
-export function CreateTaskDialog({ projectId }: Props) {
+export function CreateTaskDialog({ projectId, workspaceId }: Props) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -27,7 +28,7 @@ export function CreateTaskDialog({ projectId }: Props) {
         <DialogHeader>
           <DialogTitle>Create Task</DialogTitle>
         </DialogHeader>
-        <TaskForm projectId={projectId} onSuccessAction={() => setOpen(false)} />
+        <TaskForm projectId={projectId} workspaceId={workspaceId} onSuccessAction={() => setOpen(false)} />
       </DialogContent>
     </Dialog>
   );

@@ -14,9 +14,10 @@ import type { TaskDTO } from "@/types/domain";
 
 type Props = {
   task: TaskDTO;
+  workspaceId?: string;
 };
 
-export function TaskEditDialog({ task }: Props) {
+export function TaskEditDialog({ task, workspaceId }: Props) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -31,6 +32,7 @@ export function TaskEditDialog({ task }: Props) {
         <TaskForm
           projectId={task.projectId}
           task={task}
+          workspaceId={workspaceId}
           onSuccessAction={() => setOpen(false)}
         />
       </DialogContent>

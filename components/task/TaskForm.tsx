@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -18,16 +18,32 @@ import type { TaskDTO, TaskPriority } from "@/types/domain";
 type TaskFormProps = {
   projectId: string;
   task?: TaskDTO;
+  workspaceId?: string;
   onSuccessAction?: () => void;
 };
 
-export function TaskForm({ projectId, task, onSuccessAction }: TaskFormProps) {
+type MemberOption = { id: string; name: string; email: string };
+
+export function TaskForm({ projectId, task, workspaceId, onSuccessAction }: TaskFormProps) {
   const router = useRouter();
   const isEdit = !!task;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [title, setTitle] = useState(task?.title ?? "");
   const [description, setDescription] = useState(task?.description ?? "");
   const [priority, setPriority] = useState<TaskPriority>(task?.priority ?? "MEDIUM");
+  const [assigneeId, setAssigneeId] = useState<string>(task?.assignee?.id ?? "");
+  const [dueDate, setDueDate] = useState(task?.dueDate?.slice(0, 10) ?? "");
+  const [members, setMembers] = useState<MemberOption[]>([]);
+
+  useEffect(() => {
+    if (!workspaceId) return;
+    fetch(`/api/workspaces/${workspaceId}/members`)
+      .then((r) => r.json())
+      .then((json) => {
+        if (json.success) setMembers(json.data.map((m: { user: MemberOption }) => m.user));
+      })
+      .catch(() => {});
+  }, [workspaceId]);
 
   async function handleSubmit(e: { preventDefault: () => void }) {
     e.preventDefault();
@@ -39,6 +55,8 @@ export function TaskForm({ projectId, task, onSuccessAction }: TaskFormProps) {
         title,
         description: description || undefined,
         priority,
+        assigneeId: assigneeId || undefined,
+        dueDate: dueDate || undefined,
       };
 
       const url = isEdit ? `/api/tasks/${task.id}` : "/api/tasks";
@@ -109,6 +127,32 @@ export function TaskForm({ projectId, task, onSuccessAction }: TaskFormProps) {
             <SelectItem value="URGENT">Urgent</SelectItem>
           </SelectContent>
         </Select>
+      </div>
+
+      {members.length > 0 && (
+        <div>
+          <label className="text-sm font-medium">Assignee</label>
+          <Select value={assigneeId} onValueChange={(v) => setAssigneeId(v ?? "")}>
+            <SelectTrigger>
+              <SelectValue placeholder="Unassigned" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="">Unassigned</SelectItem>
+              {members.map((m) => (
+                <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      )}
+
+      <div>
+        <label className="text-sm font-medium">Due Date</label>
+        <Input
+          type="date"
+          value={dueDate}
+          onChange={(e) => setDueDate(e.target.value)}
+        />
       </div>
 
       <Button type="submit" disabled={isSubmitting} className="w-full">

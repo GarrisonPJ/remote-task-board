@@ -42,7 +42,7 @@ export default async function ProjectDetailPage({
       <section>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold">Tasks</h2>
-          {userRole !== "VIEWER" && <CreateTaskDialog projectId={projectId} />}
+          {userRole !== "VIEWER" && <CreateTaskDialog projectId={projectId} workspaceId={project.workspaceId} />}
         </div>
         <TaskList tasks={tasks.items} />
       </section>

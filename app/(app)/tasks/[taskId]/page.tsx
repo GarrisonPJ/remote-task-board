@@ -1,6 +1,7 @@
 import { getUserFromSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { getTaskById } from "@/services/task.service";
+import { getProjectById } from "@/services/project.service";
 import { TaskStatusBadge } from "@/components/task/TaskStatusBadge";
 import { TaskPriorityBadge } from "@/components/task/TaskPriorityBadge";
 import { TaskEditDialog } from "@/components/task/TaskEditDialog";
@@ -18,6 +19,8 @@ export default async function TaskDetailPage({
 
   const { taskId } = await params;
   const { task, userRole } = await getTaskById(taskId, user.id);
+  const { project } = await getProjectById(task.projectId, user.id);
+  const workspaceId = project.workspaceId;
 
   return (
     <div className="space-y-8 max-w-2xl">
@@ -37,7 +40,7 @@ export default async function TaskDetailPage({
             {(userRole === "OWNER" || (userRole === "MEMBER" && user.id === task.creatorId)) && (
               <TaskDeleteButton taskId={task.id} />
             )}
-            {userRole !== "VIEWER" && <TaskEditDialog task={task} />}
+            {userRole !== "VIEWER" && <TaskEditDialog task={task} workspaceId={workspaceId} />}
           </div>
         </div>
       </div>
