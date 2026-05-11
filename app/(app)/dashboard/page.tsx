@@ -50,30 +50,30 @@ export default async function DashboardPage() {
         <p className="text-muted-foreground mt-1">Welcome back, {user.name}</p>
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="rounded-lg border p-4">
-          <FolderKanban className="h-5 w-5 text-muted-foreground mb-2" />
-          <div className="text-2xl font-bold">{workspaces.length}</div>
-          <div className="text-xs text-muted-foreground">Workspaces</div>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 animate-slide-up">
+        <div className="rounded-lg border bg-card p-4 hover:border-primary/30 transition-colors duration-200 stagger-1">
+          <FolderKanban className="h-5 w-5 text-primary/60 mb-2" />
+          <div className="text-2xl font-bold tracking-tight">{workspaces.length}</div>
+          <div className="text-xs text-muted-foreground mt-0.5">Workspaces</div>
         </div>
-        <div className="rounded-lg border p-4">
-          <ListTodo className="h-5 w-5 text-muted-foreground mb-2" />
-          <div className="text-2xl font-bold">{allTasks.meta.total}</div>
-          <div className="text-xs text-muted-foreground">Total Tasks</div>
+        <div className="rounded-lg border bg-card p-4 hover:border-primary/30 transition-colors duration-200 stagger-2">
+          <ListTodo className="h-5 w-5 text-chart-2/70 mb-2" />
+          <div className="text-2xl font-bold tracking-tight">{allTasks.meta.total}</div>
+          <div className="text-xs text-muted-foreground mt-0.5">Total Tasks</div>
         </div>
-        <div className="rounded-lg border p-4">
-          <Clock className="h-5 w-5 text-muted-foreground mb-2" />
-          <div className="text-2xl font-bold">{openTasks}</div>
-          <div className="text-xs text-muted-foreground">Open Tasks</div>
+        <div className="rounded-lg border bg-card p-4 hover:border-primary/30 transition-colors duration-200 stagger-3">
+          <Clock className="h-5 w-5 text-chart-3/70 mb-2" />
+          <div className="text-2xl font-bold tracking-tight">{openTasks}</div>
+          <div className="text-xs text-muted-foreground mt-0.5">Open Tasks</div>
         </div>
-        <div className="rounded-lg border p-4">
-          <Search className="h-5 w-5 text-muted-foreground mb-2" />
-          <div className="text-2xl font-bold">{inReview}</div>
-          <div className="text-xs text-muted-foreground">In Review</div>
+        <div className="rounded-lg border bg-card p-4 hover:border-primary/30 transition-colors duration-200 stagger-4">
+          <Search className="h-5 w-5 text-chart-4/70 mb-2" />
+          <div className="text-2xl font-bold tracking-tight">{inReview}</div>
+          <div className="text-xs text-muted-foreground mt-0.5">In Review</div>
         </div>
       </div>
 
-      <section>
+      <section className="animate-slide-up">
         <h2 className="text-lg font-semibold mb-3">Your Workspaces</h2>
         {workspaces.length === 0 ? (
           <p className="text-muted-foreground">
