@@ -494,6 +494,14 @@ export async function getTaskById(
     creatorId: task.creatorId,
     assignee: task.assignee ?? null,
     dueDate: task.dueDate?.toISOString() ?? null,
+    activityLogs: task.activityLogs.map((log) => ({
+      id: log.id,
+      taskId: log.taskId,
+      actor: log.actor,
+      fromStatus: log.fromStatus,
+      toStatus: log.toStatus,
+      createdAt: log.createdAt.toISOString(),
+    })),
     createdAt: task.createdAt.toISOString(),
     updatedAt: task.updatedAt.toISOString(),
   };

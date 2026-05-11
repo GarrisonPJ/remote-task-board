@@ -23,6 +23,12 @@ export type WorkspaceDTO = {
   updatedAt: string;
 };
 
+export type WorkspaceMemberDTO = {
+  id: string;
+  user: UserDTO;
+  role: WorkspaceRole;
+};
+
 export type ProjectDTO = {
   id: string;
   workspaceId: string;
@@ -42,6 +48,7 @@ export type TaskDTO = {
   creatorId: string;
   assignee?: UserDTO | null;
   dueDate?: string | null;
+  activityLogs?: ActivityLogDTO[];
   createdAt: string;
   updatedAt: string;
 };

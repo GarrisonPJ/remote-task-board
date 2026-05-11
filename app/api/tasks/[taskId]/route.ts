@@ -5,8 +5,6 @@
  * PATCH  /api/tasks/:id — 更新任务字段（标题/描述/优先级/负责人/截止日期）
  * DELETE /api/tasks/:id — 删除任务
  *
- * TODO: 等你实现 task.service.ts 的 getTaskById/updateTask/deleteTask 后即可工作。
- *
  * 设计文档参考：Section 14.4
  */
 

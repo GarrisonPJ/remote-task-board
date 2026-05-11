@@ -12,7 +12,7 @@
 
 import { cookies } from "next/headers";
 import { UnauthorizedError } from "./errors";
-import { getCurrentUser } from "@/services/auth.service";
+import { getCurrentUser, cleanupExpiredSessions } from "@/services/auth.service";
 
 /**
  * 从 cookie 读取 session_id，调 service 查 Session 表，返回当前用户。
@@ -24,6 +24,7 @@ export async function getUserFromSession(): Promise<{
   email: string;
 } | null> {
   try {
+    cleanupExpiredSessions();  // ~1%概率清理过期 session
     const cookieStore = await cookies();
     const sessionCookie = cookieStore.get("session_id");
     if (!sessionCookie?.value) return null;

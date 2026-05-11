@@ -45,13 +45,6 @@ export async function GET(
 
 /**
  * 更新工作区名称（仅 OWNER）。
- *
- * TODO: 在 workspace.service.ts 中实现 updateWorkspace 后，取消以下代码注释。
- *
- * 实现要点：
- * 1. 从 WorkspaceMember 表获取 actor 的角色
- * 2. 如果不是 OWNER → 抛 ForbiddenError
- * 3. prisma.workspace.update({ where: { id }, data: { name: input.name } })
  */
 export async function PATCH(
   req: NextRequest,
@@ -75,8 +68,6 @@ export async function PATCH(
 
 /**
  * 删除工作区（仅 OWNER）。
- *
- * TODO: 在 workspace.service.ts 中实现 deleteWorkspace 后即可工作。
  * 级联删除：Project/Task/ActivityLog 由 Prisma schema 的 onDelete: Cascade 自动处理。
  */
 export async function DELETE(

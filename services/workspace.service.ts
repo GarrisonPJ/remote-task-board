@@ -38,7 +38,7 @@ import type {
   UpdateWorkspaceInput,
   AddWorkspaceMemberInput,
 } from "@/schemas/workspace.schema";
-import type { WorkspaceDTO } from "@/types/domain";
+import type { WorkspaceDTO, WorkspaceMemberDTO } from "@/types/domain";
 
 type WorkspaceRole = "OWNER" | "MEMBER" | "VIEWER";
 
@@ -259,6 +259,33 @@ export async function addMember(
 }
 
 // ============================================================
+// listMembers — 获取成员列表
+// ============================================================
+
+export async function listMembers(
+  workspaceId: string,
+  actorId: string
+): Promise<WorkspaceMemberDTO[]> {
+  const member = await prisma.workspaceMember.findUnique({
+    where: { workspaceId_userId: { workspaceId, userId: actorId } },
+  });
+  if (!member) throw new NotFoundError("Workspace");
+
+  const members = await prisma.workspaceMember.findMany({
+    where: { workspaceId },
+    include: {
+      user: { select: { id: true, name: true, email: true } },
+    },
+  });
+
+  return members.map((m) => ({
+    id: m.id,
+    user: m.user,
+    role: m.role as WorkspaceRole,
+  }));
+}
+
+// ============================================================
 // removeMember — 移除成员（仅 OWNER）
 // ============================================================
 
@@ -279,11 +306,11 @@ export async function removeMember(
     where: { workspaceId, role: "OWNER" },
   });
 
-  // 检查被删的是否是 OWNER
+  // 检查被删的是否是 OWNER，并确认属于当前 workspace
   const target = await prisma.workspaceMember.findUnique({
     where: { id: memberId },
   });
-  if (!target) throw new NotFoundError("Member");
+  if (!target || target.workspaceId !== workspaceId) throw new NotFoundError("Member");
 
   if (target.role === "OWNER" && ownerCount <= 1) {
     throw new AppError(

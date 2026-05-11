@@ -30,7 +30,10 @@ import type { UserDTO } from "@/types/domain";
  * 3. 创建 User 记录
  * 4. 返回 UserDTO（不含 passwordHash，保证安全）
  */
-export async function register(input: RegisterInput): Promise<UserDTO> {
+export async function register(input: RegisterInput): Promise<{
+  user: UserDTO;
+  sessionId: string;
+}> {
   // 检查邮箱唯一性 — 如果已存在，抛出业务错误
   const existing = await prisma.user.findUnique({
     where: { email: input.email },
@@ -56,7 +59,19 @@ export async function register(input: RegisterInput): Promise<UserDTO> {
     },
   });
 
-  return user; // 类型匹配 UserDTO：{ id, name, email }
+  // 注册同时创建 session，实现注册即登录
+  const sessionId = crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+  await prisma.session.create({
+    data: {
+      id: sessionId,
+      userId: user.id,
+      expiresAt,
+    },
+  });
+
+  return { user, sessionId };
 }
 
 // ============================================================
@@ -118,7 +133,7 @@ export async function login(input: LoginInput): Promise<{
 }
 
 // ============================================================
-// TODO：logout — 用户登出
+// logout — 用户登出
 // ============================================================
 
 /**
@@ -137,15 +152,14 @@ export async function login(input: LoginInput): Promise<{
  * 设计文档参考：Section 8.1
  */
 export async function logout(sessionId: string): Promise<void> {
-  // TODO: 用 prisma.session.deleteMany 删除 session（where: { id: sessionId }）
-  // 提示：用 deleteMany 而不是 delete，因为 session 可能已经被删除，delete 会抛异常
+  // 用 deleteMany 而不是 delete，因为 session 可能已经被删除，delete 会抛异常
   await prisma.session.deleteMany({
     where: { id: sessionId }
   });
 }
 
 // ============================================================
-// TODO：getCurrentUser — 通过 session ID 查找当前用户
+// getCurrentUser — 通过 session ID 查找当前用户
 // ============================================================
 
 /**
@@ -170,7 +184,6 @@ export async function logout(sessionId: string): Promise<void> {
  * 此方法被 lib/auth.ts 的 getUserFromSession() 调用
  */
 export async function getCurrentUser(sessionId: string): Promise<UserDTO | null> {
-  // TODO: 实现上述查询逻辑
   const session = await prisma.session.findUnique({
     where: { id: sessionId },
     include: {
@@ -182,4 +195,19 @@ export async function getCurrentUser(sessionId: string): Promise<UserDTO | null>
   if (!session || session.expiresAt < new Date()) return null;
 
   return session.user;
+}
+
+// ============================================================
+// cleanupExpiredSessions — 定期清理过期 session（约 1% 概率触发）
+// ============================================================
+
+let cleanupCounter = 0;
+
+export async function cleanupExpiredSessions(): Promise<void> {
+  cleanupCounter++;
+  // 约 1% 概率执行，避免每次请求都扫表
+  if (cleanupCounter % 100 !== 0) return;
+  await prisma.session.deleteMany({
+    where: { expiresAt: { lt: new Date() } },
+  });
 }

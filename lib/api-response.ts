@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { ZodError, type ZodIssue } from "zod";
 import { AppError } from "./errors";
 
 export function ok<T>(data: T, status = 200) {
@@ -17,6 +18,23 @@ export function fail(error: Error) {
         },
       },
       { status: error.statusCode }
+    );
+  }
+
+  if (error instanceof ZodError) {
+    return NextResponse.json(
+      {
+        success: false,
+        error: {
+          code: "VALIDATION_ERROR",
+          message: "Input validation failed.",
+          details: error.issues.map((e: ZodIssue) => ({
+            field: e.path.join("."),
+            message: e.message,
+          })),
+        },
+      },
+      { status: 400 }
     );
   }
 
