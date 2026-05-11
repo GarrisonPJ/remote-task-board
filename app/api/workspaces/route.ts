@@ -3,8 +3,6 @@
  *
  * GET  /api/workspaces — 获取我的工作区列表
  * POST /api/workspaces — 创建工作区
- *
- * 设计文档参考：Section 14.2 (Workspace API)
  */
 
 import { NextRequest } from "next/server";

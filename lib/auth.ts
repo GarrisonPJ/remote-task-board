@@ -1,13 +1,6 @@
 /**
- * Auth 中间件 — Session 认证
- *
- * 职责：从 cookie 读 session_id → 调 auth service 查用户 → 返回 / 抛异常。
- * 数据库逻辑全在 services/auth.service.ts，这里只做 HTTP 层的 cookie 读写。
- *
- * 完整链路：
- *   浏览器 → cookie(session_id) → requireUser()
- *     → 读 cookie → getCurrentUser(sessionId) 查 Session 表
- *     → 验证过期 → 返回 User 或 null → 未登录抛 401
+ * Auth middleware — session-based authentication via httpOnly cookies.
+ * Reads session_id from cookies → queries Session table → returns user or throws.
  */
 
 import { cookies } from "next/headers";

@@ -2,14 +2,8 @@
  * PATCH /api/tasks/:taskId/status — 更新任务状态
  *
  * 这是项目中最重要的写端点：
- * 1. 状态机校验（防止非法流转，如 DONE → TODO）
  * 2. 权限检查（OWNER 全面 + MEMBER 需是 assignee）
  * 3. 事务：同时更新 task.status 和创建 ActivityLog
- *
- * 设计文档参考：
- *   - Section 8.4 (状态机规则)
- *   - Section 22.2 (更新任务状态序列图)
- *   - Section 决策 #2091 (事务要求)
  *
  * Prisma $transaction 保证原子性：
  *   如果 ActivityLog 写入失败，task.status 的更新会自动回滚。

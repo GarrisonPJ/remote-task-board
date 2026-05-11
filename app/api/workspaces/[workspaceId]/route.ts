@@ -8,8 +8,6 @@
  * Next.js App Router 动态路由：
  *   [workspaceId] 目录名 → params.workspaceId 获取值
  *   Next.js 15+ 中 params 是 Promise，需要用 await params 解包
- *
- * 设计文档参考：Section 14.2
  */
 
 import { NextRequest } from "next/server";

@@ -9,8 +9,6 @@
  *   sameSite: "lax"  — 防止 CSRF 攻击，允许从其他站点 GET 导航但禁止 POST
  *   path: "/"        — cookie 对所有路径有效
  *   maxAge: 7天       — 与 Session.expiresAt 保持一致
- *
- * 设计文档参考：Section 8.1 (Session 实现细节表格)
  */
 
 import { NextRequest, NextResponse } from "next/server";

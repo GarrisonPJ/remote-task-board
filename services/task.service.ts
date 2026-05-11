@@ -1,40 +1,7 @@
 /**
- * TaskService — 任务业务逻辑（最核心模块）
- *
- * 这是整个项目最复杂的模块，包含：
- * - CRUD 操作
- * - 状态机流转校验
- * - 权限矩阵（OWNER/MEMBER/VIEWER + assignee 特殊权限 + creator 特殊权限）
- * - 搜索/筛选/分页
- * - 数据隔离（Task → Project → WorkspaceMember 三表 join）
- * - 事务保证（状态更新 + ActivityLog 原子写入）
- *
- * 设计文档参考：
- *   - Section 8.4 (Task 模块)
- *   - Section 8.4 状态机规则
- *   - Section 16 (权限设计)
- *   - Section 22.2 (更新任务状态序列图 — 事务要求)
- *
- * ============================================================
- * 关键概念：DTO 转换
- * ============================================================
- *
- * Prisma 返回的数据对象不能直接返回给 API 调用方，原因：
- * 1. Date 类型 → JSON 不支持，需要转为 ISO string
- * 2. 可能包含不应该暴露的字段（如 passwordHash）
- * 3. 类型安全性——TaskDTO 定义了返回给前端的契约
- *
- * 所以每个方法末尾都有一个 "手动映射"：
- *   return {
- *     id: task.id,
- *     title: task.title,
- *     dueDate: task.dueDate?.toISOString() ?? null,  // Date → string
- *     createdAt: task.createdAt.toISOString(),
- *     ...
- *   };
- *
- * 为什么不用 Prisma 的 select？因为 include + 手动映射更灵活——
- * include 返回完整对象（含关联数据），映射时再决定哪些字段要返回。
+ * TaskService — core task business logic.
+ * Covers CRUD, state-machine transitions, permission matrix, filtering/pagination,
+ * and atomic ActivityLog writes via Prisma transactions.
  */
 
 import { prisma } from "@/lib/prisma";
@@ -52,16 +19,10 @@ type WorkspaceRole = "OWNER" | "MEMBER" | "VIEWER";
 type TaskStatus = "TODO" | "IN_PROGRESS" | "IN_REVIEW" | "DONE" | "CANCELED";
 
 // ============================================================
-// 状态机转换表（设计文档 Section 8.4）
+// 状态机转换表
 // ============================================================
 
-/**
- * 定义了哪些状态转换是合法的。
- * key = 当前状态，value = 允许转换到的目标状态列表
- *
- * 示例：TODO 只能转为 IN_PROGRESS 或 CANCELED
- *       DONE 只能转为 IN_REVIEW（被驳回重新审查）
- */
+/** Defines allowed state transitions. Key = current status, value = valid targets. */
 export const VALID_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
   TODO: ["IN_PROGRESS", "CANCELED"],
   IN_PROGRESS: ["IN_REVIEW", "CANCELED", "TODO"],
@@ -71,7 +32,7 @@ export const VALID_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
 };
 
 // ============================================================
-// 权限辅助函数（设计文档 Section 16.3）
+// 权限辅助函数
 // ============================================================
 
 export function canCreateTask(role: WorkspaceRole): boolean {
@@ -83,7 +44,7 @@ export function canUpdateTask(role: WorkspaceRole): boolean {
 }
 
 /**
- * 删除权限：OWNER 全面，MEMBER 只能删除自己创建的任务
+ * OWNER can delete any task; MEMBER can only delete tasks they created.
  */
 export function canDeleteTask(role: WorkspaceRole, creatorId: string, actorId: string): boolean {
   if (role === "OWNER") return true;
@@ -92,8 +53,8 @@ export function canDeleteTask(role: WorkspaceRole, creatorId: string, actorId: s
 }
 
 /**
- * 状态变更权限：OWNER 全面，MEMBER 只有自己是 assignee 时才能改
- * 注意：assigneeId 可能为 null（任务未分配），此时 MEMBER 不能改
+ * OWNER can always update status; MEMBER can only update if they are the assignee.
+ * When assigneeId is null (unassigned), MEMBER cannot update status.
  */
 export function canUpdateTaskStatus(
   role: WorkspaceRole,
@@ -110,13 +71,8 @@ export function canUpdateTaskStatus(
 // ============================================================
 
 /**
- * 获取用户在 task 所属 workspace 中的成员资格。
- *
- * 数据隔离的核心：通过 task → project → workspaceMember 的三表 join 链，
- * 确保用户只能访问自己 workspace 下的 task。
- *
- * Prisma 查询嵌套：
- *   task → include project → where workspace.members 包含 actorId
+ * Fetches a task with a nested permission check (task -> project -> workspace -> membership).
+ * Data isolation is enforced by joining through the three-table chain.
  */
 async function getTaskWithPermission(taskId: string, actorId: string) {
   const task = await prisma.task.findUnique({
@@ -139,8 +95,7 @@ async function getTaskWithPermission(taskId: string, actorId: string) {
 
   if (!task) throw new NotFoundError("Task");
 
-  // task.project.workspace.members[0] 就是我们通过 actorId 过滤出的成员记录
-  // 如果为空数组 → 用户不属于此 workspace → 拒绝访问
+  // members[0] is the filtered record; an empty array means the user is not in this workspace.
   const member = task.project.workspace.members[0];
   if (!member) throw new NotFoundError("Task");
 
@@ -148,23 +103,19 @@ async function getTaskWithPermission(taskId: string, actorId: string) {
 }
 
 /**
- * 验证 assigneeId 是否属于 project 所在的 workspace。
- * 防止将任务指派给不在 workspace 中的外部用户导致权限污染。
- *
- * 设计文档 Schema 注释强调了这个校验规则。
+ * Ensures the assignee is a member of the project's workspace,
+ * preventing cross-workspace assignment that could leak permissions.
  */
 async function validateAssigneeInWorkspace(
   projectId: string,
   assigneeId: string
 ): Promise<void> {
-  // 找到 project 所属的 workspaceId
   const project = await prisma.project.findUnique({
     where: { id: projectId },
     select: { workspaceId: true },
   });
   if (!project) throw new NotFoundError("Project");
 
-  // 检查 assignee 是否是该 workspace 的成员
   const member = await prisma.workspaceMember.findUnique({
     where: {
       workspaceId_userId: {
@@ -183,21 +134,14 @@ async function validateAssigneeInWorkspace(
 }
 
 // ============================================================
-// 示例 1：createTask — 创建任务（完整实现）
+// createTask — 创建任务
 // ============================================================
 
-/**
- * 创建任务流程：
- * 1. 验证 actor 是 project 所属 workspace 的成员，且有创建权限
- * 2. 如果提供了 assigneeId，验证 assignee 是该 workspace 的成员
- * 3. creatorId 从 actorId 注入，不从客户端接收（安全）
- * 4. 创建 Task 记录
- */
+/** Creates a task with permission check, assignee validation, and creator injection. */
 export async function createTask(
   input: CreateTaskInput,
   actorId: string
 ): Promise<TaskDTO> {
-  // Step 1: 获取 project 的 workspace，验证成员资格
   const project = await prisma.project.findUnique({
     where: { id: input.projectId },
     include: {
@@ -218,12 +162,12 @@ export async function createTask(
   if (!member) throw new NotFoundError("Project");
   if (!canCreateTask(member.role)) throw new ForbiddenError();
 
-  // Step 2: 验证 assignee
+  // Validate assignee is a member of the same workspace.
   if (input.assigneeId) {
     await validateAssigneeInWorkspace(input.projectId, input.assigneeId);
   }
 
-  // Step 3+4: 创建 task，creatorId 来自 actorId（不是客户端传的！）
+  // creatorId is injected from the authenticated actor, never from the client.
   const task = await prisma.task.create({
     data: {
       projectId: input.projectId,
@@ -232,8 +176,8 @@ export async function createTask(
       priority: input.priority ?? "MEDIUM",
       assigneeId: input.assigneeId ?? null,
       dueDate: input.dueDate ? new Date(input.dueDate) : null,
-      creatorId: actorId, // 安全：始终使用当前登录用户
-      status: "TODO", // 新任务始终从 TODO 开始
+      creatorId: actorId,
+      status: "TODO",
     },
     include: {
       assignee: {
@@ -242,7 +186,6 @@ export async function createTask(
     },
   });
 
-  // DTO 转换：Prisma 对象 → 前端可用类型
   return {
     id: task.id,
     projectId: task.projectId,
@@ -259,28 +202,21 @@ export async function createTask(
 }
 
 // ============================================================
-// updateTaskStatus — 状态变更 + ActivityLog（完整实现）
+// updateTaskStatus — 状态变更 + ActivityLog
 // ============================================================
 
 /**
- * 更新任务状态 —— 含状态机校验 + 权限检查 + 事务写入 ActivityLog。
- *
- * 这是设计文档 Section 22.2 序列图中描述的完整流程。
- *
- * 事务要求（设计文档决策 #2091）：
- * "更新任务状态和写入 Activity Log 必须包裹在同一个 Prisma 事务中"
- * 使用 prisma.$transaction([...]) 保证原子性 ——
- * 要么两个操作都成功，要么都回滚。不会出现"任务已更新但日志没写"的数据不一致。
+ * Updates a task's status with state-machine validation, permission check,
+ * and an atomic transaction that writes both the status change and ActivityLog.
  */
 export async function updateTaskStatus(
   taskId: string,
   input: UpdateTaskStatusInput,
   actorId: string
 ): Promise<TaskDTO> {
-  // Step 1: 获取 task 和用户权限
   const { task, role } = await getTaskWithPermission(taskId, actorId);
 
-  // Step 2: 状态流转校验
+  // Validate state transition
   const validTargets = VALID_TRANSITIONS[task.status];
   if (!validTargets.includes(input.status)) {
     throw new AppError(
@@ -290,12 +226,12 @@ export async function updateTaskStatus(
     );
   }
 
-  // Step 3: 权限检查（OWNER 全面，MEMBER 需是 assignee）
+  // Permission: OWNER is all-powerful, MEMBER must be the assignee.
   if (!canUpdateTaskStatus(role, task.assigneeId, actorId)) {
     throw new ForbiddenError();
   }
 
-  // Step 4: 事务 — 同时更新 task status 和写入 activity log
+  // Atomic transaction: update status + write ActivityLog as a single unit.
   const [updatedTask] = await prisma.$transaction([
     prisma.task.update({
       where: { id: taskId },
@@ -310,8 +246,8 @@ export async function updateTaskStatus(
       data: {
         taskId,
         actorId,
-        fromStatus: task.status, // 变更前状态
-        toStatus: input.status, // 变更后状态
+        fromStatus: task.status,
+        toStatus: input.status,
       },
     }),
   ]);
@@ -335,15 +271,7 @@ export async function updateTaskStatus(
 // getTaskById — 获取任务详情（含 ActivityLog 时间线）
 // ============================================================
 
-/**
- * 与 getTaskWithPermission 结构一致，额外 include 了 assignee 和 activityLogs。
- *
- * include 层级：
- *   task
- *   ├── assignee (select id, name, email)
- *   ├── activityLogs (take 10, 按时间倒序, include actor)
- *   └── project → workspace → members (where userId = actorId, 做权限检查)
- */
+/** Gets a task by ID with assignee, activity logs, and permission check. */
 export async function getTaskById(
   taskId: string,
   actorId: string
@@ -408,7 +336,7 @@ export async function getTaskById(
 }
 
 // ============================================================
-// updateTask — 更新任务字段（标题/描述/优先级/负责人/截止日期）
+// updateTask — 更新任务字段
 // ============================================================
 
 export async function updateTask(
@@ -416,18 +344,15 @@ export async function updateTask(
   input: UpdateTaskInput,
   actorId: string
 ): Promise<TaskDTO> {
-  // Step 1: 权限检查 + 数据隔离 — 复用 getTaskWithPermission
   const { task, role } = await getTaskWithPermission(taskId, actorId);
 
-  // Step 2: 权限 — 修改任务字段需要 OWNER 或 MEMBER
   if (!canUpdateTask(role)) throw new ForbiddenError();
 
-  // Step 3: 如果修改了 assigneeId，验证新 assignee 在 workspace 中
+  // If changing assignee, verify the new assignee is in the workspace.
   if (input.assigneeId) {
     await validateAssigneeInWorkspace(task.projectId, input.assigneeId);
   }
 
-  // Step 4: 更新 — Prisma 只更新 data 里传了的字段，undefined 的字段保持不变
   const updated = await prisma.task.update({
     where: { id: taskId },
     data: {
@@ -444,7 +369,6 @@ export async function updateTask(
     },
   });
 
-  // Step 5: DTO 转换
   return {
     id: updated.id,
     projectId: updated.projectId,
@@ -468,12 +392,10 @@ export async function deleteTask(
   taskId: string,
   actorId: string
 ): Promise<void> {
-  // Step 1: 权限检查
   const { task, role } = await getTaskWithPermission(taskId, actorId);
 
-  // Step 2: 权限 — OWNER 全面，MEMBER 只能删自己创建的
   if (!canDeleteTask(role, task.creatorId, actorId)) throw new ForbiddenError();
 
-  // Step 3: 删除 — 级联删除 activityLogs 由 Prisma onDelete: Cascade 自动处理
+  // ActivityLogs are cascade-deleted by Prisma onDelete: Cascade.
   await prisma.task.delete({ where: { id: taskId } });
 }

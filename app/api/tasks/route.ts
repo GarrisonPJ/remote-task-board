@@ -8,8 +8,6 @@
  *
  * 筛选/分页/搜索完整示例 URL：
  *   /api/tasks?projectId=abc&status=IN_PROGRESS&priority=HIGH&q=bug&page=1&pageSize=10
- *
- * 设计文档参考：Section 14.4 (Task API)
  */
 
 import { NextRequest } from "next/server";
@@ -18,19 +16,6 @@ import { requireUser } from "@/lib/auth";
 import { createTaskSchema, listTasksQuerySchema } from "@/schemas/task.schema";
 import { listTasks, createTask } from "@/services/task.service";
 
-// ============================================================
-// GET /api/tasks — 搜索/筛选/分页
-// ============================================================
-
-/**
- * URL search params → zod schema 的转换模式：
- * 1. 遍历 req.nextUrl.searchParams，构建普通对象
- * 2. 传给 listTasksQuerySchema.parse() — zod 做类型转换和默认值
- * 3. coerce.number() 将 URL 中的字符串 "1" 转为数字 1
- *
- * 因为服务端筛选/分页/搜索通过 URL search params 触发 Server Component 重新渲染，
- * 这个端点主要用于外部客户端和 API 文档。
- */
 export async function GET(req: NextRequest) {
   try {
     const user = await requireUser();

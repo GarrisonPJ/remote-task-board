@@ -4,8 +4,6 @@
  * GET    /api/tasks/:id — 获取详情（含 ActivityLog 时间线）
  * PATCH  /api/tasks/:id — 更新任务字段（标题/描述/优先级/负责人/截止日期）
  * DELETE /api/tasks/:id — 删除任务
- *
- * 设计文档参考：Section 14.4
  */
 
 import { NextRequest } from "next/server";
