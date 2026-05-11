@@ -1,7 +1,7 @@
 import { getUserFromSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { listTasks } from "@/services/task.service";
-import { TaskList } from "@/components/task/TaskList";
+import { TaskTable } from "@/components/task/TaskTable";
 import { TaskFilters } from "@/components/task/TaskFilters";
 import {
   Pagination,
@@ -80,7 +80,7 @@ export default async function TasksPage({ searchParams }: Props) {
 
       <TaskFilters />
 
-      <TaskList tasks={tasks.items} />
+      <TaskTable tasks={tasks.items} />
 
       {totalPages > 1 && (
         <Pagination>
