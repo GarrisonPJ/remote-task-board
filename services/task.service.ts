@@ -43,10 +43,10 @@ import type {
   CreateTaskInput,
   UpdateTaskInput,
   UpdateTaskStatusInput,
-  ListTasksQuery,
 } from "@/schemas/task.schema";
 import type { TaskDTO } from "@/types/domain";
-import type { PaginatedResponse } from "@/types/api";
+
+export { listTasks } from "./task-list.service";
 
 type WorkspaceRole = "OWNER" | "MEMBER" | "VIEWER";
 type TaskStatus = "TODO" | "IN_PROGRESS" | "IN_REVIEW" | "DONE" | "CANCELED";
@@ -259,110 +259,7 @@ export async function createTask(
 }
 
 // ============================================================
-// 示例 2：listTasks — 搜索/筛选/分页查询（完整实现）
-// ============================================================
-
-/**
- * 搜索/筛选/分页的综合查询。
- *
- * 数据隔离方案：
- * 在 Prisma 查询的 where 条件中，通过 task.project.workspace.members.some
- * 确保只返回 actorId 是成员的 workspace 下的 task。
- * 这是 Prisma 的"关联过滤"语法 —— 生成的 SQL 是一个带子查询的 WHERE EXISTS。
- *
- * 搜索：title 包含 q，大小写不敏感（mode: 'insensitive'）
- * 排序：按 updatedAt 降序（最新修改的在前）
- * 分页：skip = (page - 1) * pageSize, take = pageSize
- */
-export async function listTasks(
-  query: ListTasksQuery,
-  actorId: string
-): Promise<PaginatedResponse<TaskDTO>> {
-  const { projectId, workspaceId, status, priority, assigneeId, q, page, pageSize } = query;
-
-  // 构建 Prisma where 条件 —— 动态组合筛选条件
-  const where: Record<string, unknown> = {
-    // 数据隔离：只查当前用户所属 workspace 的 task
-    project: {
-      workspace: {
-        members: {
-          some: { userId: actorId },
-        },
-      },
-    },
-  };
-
-  // 可选筛选条件
-  if (projectId) {
-    where.projectId = projectId;
-  }
-  if (workspaceId) {
-    // 按 workspace 筛选（通过 project.workspaceId 关联）
-    where.project = {
-      ...(where.project as Record<string, unknown>),
-      workspaceId,
-    };
-  }
-  if (status) {
-    where.status = status;
-  }
-  if (priority) {
-    where.priority = priority;
-  }
-  if (assigneeId) {
-    where.assigneeId = assigneeId;
-  }
-  if (q) {
-    // 标题模糊搜索，大小写不敏感
-    where.title = {
-      contains: q,
-      mode: "insensitive",
-    };
-  }
-
-  // 并行查询：同时获取列表数据和总数
-  const [tasks, total] = await Promise.all([
-    prisma.task.findMany({
-      where,
-      include: {
-        assignee: {
-          select: { id: true, name: true, email: true },
-        },
-      },
-      orderBy: { updatedAt: "desc" },
-      skip: (page - 1) * pageSize,
-      take: pageSize,
-    }),
-    prisma.task.count({ where }),
-  ]);
-
-  const totalPages = Math.ceil(total / pageSize);
-
-  return {
-    items: tasks.map((t) => ({
-      id: t.id,
-      projectId: t.projectId,
-      title: t.title,
-      description: t.description,
-      status: t.status,
-      priority: t.priority,
-      creatorId: t.creatorId,
-      assignee: t.assignee ?? null,
-      dueDate: t.dueDate?.toISOString() ?? null,
-      createdAt: t.createdAt.toISOString(),
-      updatedAt: t.updatedAt.toISOString(),
-    })),
-    meta: {
-      page,
-      pageSize,
-      total,
-      totalPages,
-    },
-  };
-}
-
-// ============================================================
-// 示例 3：updateTaskStatus — 状态变更 + ActivityLog（完整实现）
+// updateTaskStatus — 状态变更 + ActivityLog（完整实现）
 // ============================================================
 
 /**

@@ -14,6 +14,17 @@ import {
 } from "@/components/ui/pagination";
 import Link from "next/link";
 
+const STATUSES = ["TODO", "IN_PROGRESS", "IN_REVIEW", "DONE", "CANCELED"] as const;
+const PRIORITIES = ["LOW", "MEDIUM", "HIGH", "URGENT"] as const;
+
+function parseStatus(v?: string) {
+  return STATUSES.includes(v as typeof STATUSES[number]) ? v as typeof STATUSES[number] : undefined;
+}
+
+function parsePriority(v?: string) {
+  return PRIORITIES.includes(v as typeof PRIORITIES[number]) ? v as typeof PRIORITIES[number] : undefined;
+}
+
 type Props = {
   searchParams: Promise<{
     workspaceId?: string;
@@ -34,8 +45,8 @@ export default async function TasksPage({ searchParams }: Props) {
     {
       workspaceId: sp.workspaceId,
       projectId: sp.projectId,
-      status: sp.status as "TODO" | "IN_PROGRESS" | "IN_REVIEW" | "DONE" | "CANCELED" | undefined,
-      priority: sp.priority as "LOW" | "MEDIUM" | "HIGH" | "URGENT" | undefined,
+      status: parseStatus(sp.status),
+      priority: parsePriority(sp.priority),
       q: sp.q,
       page: Number(sp.page ?? 1),
       pageSize: 20,

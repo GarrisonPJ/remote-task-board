@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, type FormEvent } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -52,7 +52,7 @@ export function MemberList({ workspaceId, currentUserRole }: Props) {
     loadMembers();
   }, [workspaceId]);
 
-  async function handleAddMember(e: FormEvent) {
+  async function handleAddMember(e: { preventDefault: () => void }) {
     e.preventDefault();
     setIsSubmitting(true);
 

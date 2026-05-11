@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -29,7 +29,7 @@ export function TaskForm({ projectId, task, onSuccessAction }: TaskFormProps) {
   const [description, setDescription] = useState(task?.description ?? "");
   const [priority, setPriority] = useState<TaskPriority>(task?.priority ?? "MEDIUM");
 
-  async function handleSubmit(e: FormEvent) {
+  async function handleSubmit(e: { preventDefault: () => void }) {
     e.preventDefault();
     setIsSubmitting(true);
 
