@@ -15,7 +15,7 @@ export default async function ProjectDetailPage({
   if (!user) redirect("/login");
 
   const { projectId } = await params;
-  const project = await getProjectById(projectId, user.id);
+  const { project, userRole } = await getProjectById(projectId, user.id);
   const tasks = await listTasks(
     { projectId, page: 1, pageSize: 50 },
     user.id
@@ -42,7 +42,7 @@ export default async function ProjectDetailPage({
       <section>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold">Tasks</h2>
-          <CreateTaskDialog projectId={projectId} />
+          {userRole !== "VIEWER" && <CreateTaskDialog projectId={projectId} />}
         </div>
         <TaskList tasks={tasks.items} />
       </section>

@@ -347,8 +347,8 @@ export async function updateTaskStatus(
 export async function getTaskById(
   taskId: string,
   actorId: string
-): Promise<TaskDTO> {
-  const task = await prisma.task.findUnique({
+): Promise<{ task: TaskDTO; userRole: WorkspaceRole }> {
+  const t = await prisma.task.findUnique({
     where: { id: taskId },
     include: {
       assignee: {
@@ -376,31 +376,34 @@ export async function getTaskById(
     },
   });
 
-  if (!task) throw new NotFoundError("Task");
+  if (!t) throw new NotFoundError("Task");
 
-  const member = task.project.workspace.members[0];
+  const member = t.project.workspace.members[0];
   if (!member) throw new NotFoundError("Task");
 
   return {
-    id: task.id,
-    projectId: task.projectId,
-    title: task.title,
-    description: task.description,
-    status: task.status,
-    priority: task.priority,
-    creatorId: task.creatorId,
-    assignee: task.assignee ?? null,
-    dueDate: task.dueDate?.toISOString() ?? null,
-    activityLogs: task.activityLogs.map((log) => ({
-      id: log.id,
-      taskId: log.taskId,
-      actor: log.actor,
-      fromStatus: log.fromStatus,
-      toStatus: log.toStatus,
-      createdAt: log.createdAt.toISOString(),
-    })),
-    createdAt: task.createdAt.toISOString(),
-    updatedAt: task.updatedAt.toISOString(),
+    task: {
+      id: t.id,
+      projectId: t.projectId,
+      title: t.title,
+      description: t.description,
+      status: t.status,
+      priority: t.priority,
+      creatorId: t.creatorId,
+      assignee: t.assignee ?? null,
+      dueDate: t.dueDate?.toISOString() ?? null,
+      activityLogs: t.activityLogs.map((log) => ({
+        id: log.id,
+        taskId: log.taskId,
+        actor: log.actor,
+        fromStatus: log.fromStatus,
+        toStatus: log.toStatus,
+        createdAt: log.createdAt.toISOString(),
+      })),
+      createdAt: t.createdAt.toISOString(),
+      updatedAt: t.updatedAt.toISOString(),
+    },
+    userRole: member.role as WorkspaceRole,
   };
 }
 

@@ -169,19 +169,22 @@ export async function listProjects(
 export async function getProjectById(
   projectId: string,
   actorId: string
-): Promise<ProjectDTO> {
-  const projects = await prisma.project.findUnique({ where: { id: projectId } });
-  if (!projects) throw new NotFoundError("Project Not Founded");
+): Promise<{ project: ProjectDTO; userRole: WorkspaceRole }> {
+  const p = await prisma.project.findUnique({ where: { id: projectId } });
+  if (!p) throw new NotFoundError("Project Not Founded");
 
-  await getMembership(projects.workspaceId, actorId);
+  const member = await getMembership(p.workspaceId, actorId);
 
   return {
-    id: projects.id,
-    workspaceId: projects.workspaceId,
-    name: projects.name,
-    description: projects.description,
-    createdAt: projects.createdAt.toISOString(),
-    updatedAt: projects.updatedAt.toISOString(),
+    project: {
+      id: p.id,
+      workspaceId: p.workspaceId,
+      name: p.name,
+      description: p.description,
+      createdAt: p.createdAt.toISOString(),
+      updatedAt: p.updatedAt.toISOString(),
+    },
+    userRole: member.role as WorkspaceRole,
   };
 }
 

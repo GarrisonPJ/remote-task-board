@@ -25,7 +25,7 @@ export async function GET(
   try {
     const user = await requireUser();
     const { taskId } = await params;
-    const task = await getTaskById(taskId, user.id);
+    const { task } = await getTaskById(taskId, user.id);
     return ok(task);
   } catch (error) {
     return fail(error as Error);

@@ -16,7 +16,7 @@ export default async function TaskDetailPage({
   if (!user) redirect("/login");
 
   const { taskId } = await params;
-  const task = await getTaskById(taskId, user.id);
+  const { task, userRole } = await getTaskById(taskId, user.id);
 
   return (
     <div className="space-y-8 max-w-2xl">
@@ -33,8 +33,10 @@ export default async function TaskDetailPage({
         <div className="flex items-center justify-between mt-1">
           <h1 className="text-2xl font-bold">{task.title}</h1>
           <div className="flex gap-2">
-            {user.id === task.creatorId && <TaskDeleteButton taskId={task.id} />}
-            <TaskEditDialog task={task} />
+            {(userRole === "OWNER" || (userRole === "MEMBER" && user.id === task.creatorId)) && (
+              <TaskDeleteButton taskId={task.id} />
+            )}
+            {userRole !== "VIEWER" && <TaskEditDialog task={task} />}
           </div>
         </div>
       </div>

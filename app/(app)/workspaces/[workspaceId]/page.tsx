@@ -46,7 +46,7 @@ export default async function WorkspaceDetailPage({
       <section>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold">Projects</h2>
-          <CreateProjectDialog workspaceId={workspaceId} />
+          {workspace.role !== "VIEWER" && <CreateProjectDialog workspaceId={workspaceId} />}
         </div>
         {projects.length === 0 ? (
           <p className="text-muted-foreground">No projects yet.</p>
