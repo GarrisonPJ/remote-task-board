@@ -1,17 +1,10 @@
 /**
  * 注册页面 — Client Component
  *
- * 实现模式与登录页面完全相同，只是：
+ * 实现模式与登录页面完全相同：
  * - 多一个 name 字段
  * - 调用 POST /api/auth/register
- * - 成功后可以自动跳转 dashboard（因为 register 会登录）
- *
- * 注意：register API 目前不自动登录（auth.service.ts 的 register 只创建用户）。
- * 所以这里注册成功后需要额外做 login 或直接跳转登录页。
- *
- * 改进方案（可选）：
- *   1. 注册成功后 router.push("/login") + toast 提示 "Account created, please login"
- *   2. 或者在 auth.service.ts 中让 register 也返回 sessionId 并设置 cookie
+ * - register API 已实现注册即登录（创建 session + 设置 cookie），成功后直接跳转 dashboard
  */
 
 "use client";
@@ -55,8 +48,8 @@ export default function RegisterPage() {
         return;
       }
 
-      toast.success("Account created! Please login.");
-      router.push("/login");
+      toast.success("Account created! Welcome.");
+      router.push("/dashboard");
     } catch {
       toast.error("Network error. Please try again.");
     } finally {
