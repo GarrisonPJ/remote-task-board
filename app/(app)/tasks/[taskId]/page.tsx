@@ -5,6 +5,7 @@ import { TaskStatusBadge } from "@/components/task/TaskStatusBadge";
 import { TaskPriorityBadge } from "@/components/task/TaskPriorityBadge";
 import { TaskEditDialog } from "@/components/task/TaskEditDialog";
 import { TaskDeleteButton } from "@/components/task/TaskDeleteButton";
+import { TaskStatusControl } from "@/components/task/TaskStatusControl";
 import Link from "next/link";
 
 export default async function TaskDetailPage({
@@ -45,6 +46,14 @@ export default async function TaskDetailPage({
         <TaskStatusBadge status={task.status} />
         <TaskPriorityBadge priority={task.priority} />
       </div>
+
+      <TaskStatusControl
+        taskId={task.id}
+        currentStatus={task.status}
+        userId={user.id}
+        assigneeId={task.assignee?.id ?? null}
+        userRole={userRole}
+      />
 
       {task.description && (
         <section>

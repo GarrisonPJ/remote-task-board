@@ -26,26 +26,51 @@ import { listMyWorkspaces } from "@/services/workspace.service";
 import { listTasks } from "@/services/task.service";
 import { WorkspaceCard } from "@/components/workspace/WorkspaceCard";
 import { TaskList } from "@/components/task/TaskList";
+import { FolderKanban, Clock, Search, ListTodo } from "lucide-react";
 
 export default async function DashboardPage() {
   const user = await getUserFromSession();
   if (!user) redirect("/login");
 
-  // 查询当前用户的 workspace 和近期任务
-  const workspaces = await listMyWorkspaces(user.id);
-  const recentTasks = await listTasks(
-    { page: 1, pageSize: 5 },
-    user.id
-  );
+  const [workspaces, recentTasks, allTasks] = await Promise.all([
+    listMyWorkspaces(user.id),
+    listTasks({ page: 1, pageSize: 5 }, user.id),
+    listTasks({ page: 1, pageSize: 100 }, user.id),
+  ]);
+
+  const openTasks = allTasks.items.filter(
+    (t) => t.status !== "DONE" && t.status !== "CANCELED"
+  ).length;
+  const inReview = allTasks.items.filter((t) => t.status === "IN_REVIEW").length;
 
   return (
     <div className="space-y-8">
-      {/* 页面标题 */}
       <div>
         <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">
-          Welcome back, {user.name}
-        </p>
+        <p className="text-muted-foreground mt-1">Welcome back, {user.name}</p>
+      </div>
+
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        <div className="rounded-lg border p-4">
+          <FolderKanban className="h-5 w-5 text-muted-foreground mb-2" />
+          <div className="text-2xl font-bold">{workspaces.length}</div>
+          <div className="text-xs text-muted-foreground">Workspaces</div>
+        </div>
+        <div className="rounded-lg border p-4">
+          <ListTodo className="h-5 w-5 text-muted-foreground mb-2" />
+          <div className="text-2xl font-bold">{allTasks.meta.total}</div>
+          <div className="text-xs text-muted-foreground">Total Tasks</div>
+        </div>
+        <div className="rounded-lg border p-4">
+          <Clock className="h-5 w-5 text-muted-foreground mb-2" />
+          <div className="text-2xl font-bold">{openTasks}</div>
+          <div className="text-xs text-muted-foreground">Open Tasks</div>
+        </div>
+        <div className="rounded-lg border p-4">
+          <Search className="h-5 w-5 text-muted-foreground mb-2" />
+          <div className="text-2xl font-bold">{inReview}</div>
+          <div className="text-xs text-muted-foreground">In Review</div>
+        </div>
       </div>
 
       <section>

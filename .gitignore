@@ -53,3 +53,4 @@ yarn-error.log*
 # misc
 *.pem
 *.tgz
+.playwright-libs/
