@@ -22,19 +22,21 @@
 
 import { getUserFromSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
-// import { listMyWorkspaces } from "@/services/workspace.service";
-// import { listTasks } from "@/services/task.service";
+import { listMyWorkspaces } from "@/services/workspace.service";
+import { listTasks } from "@/services/task.service";
+import { WorkspaceCard } from "@/components/workspace/WorkspaceCard";
+import { TaskList } from "@/components/task/TaskList";
 
 export default async function DashboardPage() {
   const user = await getUserFromSession();
   if (!user) redirect("/login");
 
-  // TODO: 查询数据（取消以下注释后即可工作）
-  // const workspaces = await listMyWorkspaces(user.id);
-  // const recentTasks = await listTasks(
-  //   { page: 1, pageSize: 5 },
-  //   user.id
-  // );
+  // 查询当前用户的 workspace 和近期任务
+  const workspaces = await listMyWorkspaces(user.id);
+  const recentTasks = await listTasks(
+    { page: 1, pageSize: 5 },
+    user.id
+  );
 
   return (
     <div className="space-y-8">
@@ -46,7 +48,6 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      {/* TODO: Workspace 列表
       <section>
         <h2 className="text-lg font-semibold mb-3">Your Workspaces</h2>
         {workspaces.length === 0 ? (
@@ -61,9 +62,7 @@ export default async function DashboardPage() {
           </div>
         )}
       </section>
-      */}
 
-      {/* TODO: 最近任务
       <section>
         <h2 className="text-lg font-semibold mb-3">Recent Tasks</h2>
         {recentTasks.items.length === 0 ? (
@@ -72,17 +71,6 @@ export default async function DashboardPage() {
           <TaskList tasks={recentTasks.items} />
         )}
       </section>
-      */}
-
-      {/* 占位提示 — 实现上述内容后删除 */}
-      <div className="rounded-lg border border-dashed p-8 text-center">
-        <p className="text-muted-foreground">
-          TODO: 取消注释代码，实现 workspace 列表和最近任务展示。
-        </p>
-        <p className="text-sm text-muted-foreground mt-1">
-          参考 services/workspace.service.ts 和 services/task.service.ts
-        </p>
-      </div>
     </div>
   );
 }
