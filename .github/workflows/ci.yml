@@ -43,7 +43,7 @@ jobs:
           node-version: 20
           cache: pnpm
 
-      - run: pnpm install
+      - run: pnpm install --frozen-lockfile
 
       # 注意：需要先安装 Playwright 浏览器才能 build
       # （因为测试依赖 import 可能存在）
