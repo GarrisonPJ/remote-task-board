@@ -1,73 +1,81 @@
-/**
- * E2E Test: Permission — 权限拦截测试
- *
- * 测试覆盖：
- * 1. MEMBER 不能删除别人的任务
- * 2. VIEWER 不能创建任务
- *
- * Seed 账号：
- *   alice@test.com / password123 — OWNER
- *   bob@test.com / password123   — MEMBER
- *
- * 权限测试模式：
- *   - 用 alice 创建 task
- *   - 用 bob 登录尝试删除 alice 的 task → 应该被拒绝
- *   - 验证错误提示出现
- *
- * browser context 隔离：
- *   Playwright 默认每个 test 是独立的 browser context（无共享 cookie）。
- *   不同 test 之间可以登录不同用户而互不影响。
- *
- * 如果需要同一个 test 中用两个用户，可以创建两个 page（两个 tab），
- * 或使用 { browser } fixture 手动创建 new context。
- *
- * 你参考文档：https://playwright.dev/docs/auth
- */
-
 import { test, expect } from "@playwright/test";
 
-// ============================================================
-// TODO: 测试 1 — MEMBER 不能删除别人创建的任务
-// ============================================================
+test("member cannot delete another user's task", async ({ browser, request }) => {
+  // 1. alice（OWNER）登录并创建 task
+  const loginAlice = await request.post("/api/auth/login", {
+    data: { email: "alice@test.com", password: "password123" },
+  });
+  expect(loginAlice.status()).toBe(200);
 
-/**
- * 步骤：
- * 1. 用 alice（OWNER）登录，创建 task
- * 2. 用 bob（MEMBER）登录
- * 3. bob 尝试删除 alice 的 task
- * 4. 验证操作被拒绝（404 或 403 或错误提示）
- *
- * 提示：可以在同一个 test 中用两个 page 对象：
- *
- * test("member cannot delete another user's task", async ({ browser }) => {
- *   const alicePage = await browser.newPage();
- *   const bobPage = await browser.newPage();
- *
- *   // alice 登录并创建 task
- *   await alicePage.goto("/login");
- *   // ...
- *
- *   // bob 登录并尝试删除
- *   await bobPage.goto("/login");
- *   // ...
- * });
- */
+  // 找一个 project
+  const wsRes = await request.get("/api/workspaces");
+  const wsBody = await wsRes.json();
+  const wsId = wsBody.data[0].id;
 
-// ============================================================
-// TODO: 测试 2 — VIEWER 不能创建任务
-// ============================================================
+  const projRes = await request.get(`/api/projects?workspaceId=${wsId}`);
+  const projBody = await projRes.json();
+  const projId = projBody.data[0].id;
 
-/**
- * 步骤：
- * 1. 创建一个 VIEWER 角色的测试用户（或使用 seed 数据预设）
- * 2. 用 VIEWER 登录
- * 3. 尝试访问创建 task 的 API 或页面
- * 4. 验证被拒绝
- *
- * 提示：可以直接发 POST /api/tasks 请求并检查响应：
- *
- * const res = await page.request.post("/api/tasks", {
- *   data: { projectId: "...", title: "should fail" }
- * });
- * expect(res.status()).toBe(403);
- */
+  // 创建 task
+  const taskRes = await request.post("/api/tasks", {
+    data: { projectId: projId, title: "Task to protect" },
+  });
+  expect(taskRes.status()).toBe(201);
+  const taskId = (await taskRes.json()).data.id;
+
+  // 2. 用 bob 的独立 context 尝试删除
+  const bobCtx = await browser.newContext();
+  const bobReq = bobCtx.request;
+
+  // bob 登录
+  const loginBob = await bobReq.post("/api/auth/login", {
+    data: { email: "bob@test.com", password: "password123" },
+  });
+  expect(loginBob.status()).toBe(200);
+
+  // bob 尝试删除 alice 的 task
+  const deleteRes = await bobReq.delete(`/api/tasks/${taskId}`);
+  expect(deleteRes.status()).toBe(403);
+
+  await bobCtx.close();
+});
+
+test("viewer cannot create task", async ({ browser, request }) => {
+  // 1. alice（OWNER）登录 → 获取 workspace + project
+  const loginAlice = await request.post("/api/auth/login", {
+    data: { email: "alice@test.com", password: "password123" },
+  });
+  expect(loginAlice.status()).toBe(200);
+
+  const wsRes = await request.get("/api/workspaces");
+  const wsBody = await wsRes.json();
+  const wsId = wsBody.data[0].id;
+
+  const projRes = await request.get(`/api/projects?workspaceId=${wsId}`);
+  const projBody = await projRes.json();
+  const projId = projBody.data[0].id;
+
+  // 2. 注册 viewer 用户（使用独立 context 以隔离 cookie）
+  const viewerCtx = await browser.newContext();
+  const viewerReq = viewerCtx.request;
+
+  const viewerEmail = `viewer-${Date.now()}@example.com`;
+  const regRes = await viewerReq.post("/api/auth/register", {
+    data: { name: "Viewer User", email: viewerEmail, password: "password123" },
+  });
+  expect(regRes.status()).toBe(201);
+
+  // 3. alice 将 viewer 添加为 VIEWER 角色
+  const addRes = await request.post(`/api/workspaces/${wsId}/members`, {
+    data: { email: viewerEmail, role: "VIEWER" },
+  });
+  expect(addRes.status()).toBe(201);
+
+  // 4. viewer 尝试在真实 project 下创建 task → 被 VIEWER 权限拦截返回 403
+  const taskRes = await viewerReq.post("/api/tasks", {
+    data: { projectId: projId, title: "Should be rejected" },
+  });
+  expect(taskRes.status()).toBe(403);
+
+  await viewerCtx.close();
+});

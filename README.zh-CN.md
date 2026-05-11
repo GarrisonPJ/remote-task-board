@@ -21,16 +21,20 @@
 
 ## 功能
 
-- **用户认证** — 注册、登录、登出（自定义 Session，bcrypt 加盐）
-- **Workspace 管理** — 创建工作区并管理成员
-- **项目管理** — 在工作区下管理项目
-- **任务 CRUD** — 完整的任务增删改查
-- **任务状态流转** — 定义状态机转换规则（TODO → IN_PROGRESS → IN_REVIEW → DONE → CANCELED）
-- **搜索 / 筛选 / 分页** — 按状态、优先级、负责人筛选，标题搜索，分页展示
-- **基于角色的权限控制** — OWNER / MEMBER / VIEWER 三级权限
-- **负责人特殊权限** — 任务负责人可修改任务状态
-- **活动日志** — 记录每次任务状态变更（Prisma transaction 包裹）
-- **数据隔离** — 通过三表 join（Task → Project → WorkspaceMember）保证用户只能访问自己 workspace 的数据
+- ✅ **用户认证** — 注册、登录、登出（自定义 Session，bcrypt 加盐）
+- ✅ **Workspace 管理** — 创建工作区并管理成员
+- ✅ **项目管理** — 在工作区下管理项目
+- ✅ **任务 CRUD** — 完整的任务增删改查
+- ✅ **任务状态流转** — 定义状态机转换规则（TODO → IN_PROGRESS → IN_REVIEW → DONE → CANCELED）
+- ✅ **搜索 / 筛选 / 分页** — 按状态、优先级、负责人筛选，标题搜索，分页展示
+- ✅ **基于角色的权限控制** — OWNER / MEMBER / VIEWER 三级权限
+- ✅ **负责人特殊权限** — 任务负责人可修改任务状态
+- ✅ **活动日志** — 记录每次任务状态变更（Prisma transaction 包裹）
+- ✅ **数据隔离** — 通过三表 join（Task → Project → WorkspaceMember）保证用户只能访问自己 workspace 的数据
+- 📋 **邀请链接** — 基于邮件的 workspace 邀请
+- 📋 **邮件通知** — 任务分配和状态变更提醒
+- 📋 **拖拽看板** — 可视化任务管理
+- 📋 **完整审计日志** — 完整变更历史追踪
 
 ## 数据流
 
@@ -48,11 +52,12 @@
 ```
 Remote Task Board
 ├── app/                   # Next.js App Router 页面 & API
-│   ├── (auth)/            # 登录、注册
-│   ├── dashboard/         # 主工作台
-│   ├── workspaces/        # 工作区页面
-│   ├── projects/          # 项目页面
-│   ├── tasks/             # 任务页面
+│   ├── (app)/             # 认证页面（共享侧边栏布局）
+│   │   ├── dashboard/     # 主工作台
+│   │   ├── workspaces/    # 工作区详情
+│   │   ├── projects/      # 项目详情
+│   │   └── tasks/         # 任务详情 & 列表
+│   ├── (auth)/            # 登录、注册（无侧边栏）
 │   └── api/               # Route Handlers（仅写操作）
 │
 ├── components/            # UI 组件（按业务域分组）

@@ -21,16 +21,20 @@ Built with Next.js, TypeScript, PostgreSQL, and Prisma.
 
 ## Features
 
-- **Authentication** — Register, login, logout (custom session-based auth with bcrypt hashing)
-- **Workspace management** — Create and manage workspaces with members
-- **Project management** — Group tasks within projects under a workspace
-- **Task CRUD** — Full create, read, update, delete for tasks
-- **Task status workflow** — State machine with defined transitions (TODO → IN_PROGRESS → IN_REVIEW → DONE → CANCELED)
-- **Search, filtering & pagination** — Filter by status/priority/assignee, search by title, paginated results
-- **Role-based access control** — OWNER / MEMBER / VIEWER roles with per-operation permissions
-- **Assignee permissions** — Task assignees have special privileges for status changes
-- **Activity log** — Track status change history per task (in Prisma transaction)
-- **Data isolation** — Workspace-scoped data: users can only access their own workspaces via join-chain validation
+- ✅ **Authentication** — Register, login, logout (custom session-based auth with bcrypt hashing)
+- ✅ **Workspace management** — Create and manage workspaces with members
+- ✅ **Project management** — Group tasks within projects under a workspace
+- ✅ **Task CRUD** — Full create, read, update, delete for tasks
+- ✅ **Task status workflow** — State machine with defined transitions (TODO → IN_PROGRESS → IN_REVIEW → DONE → CANCELED)
+- ✅ **Search, filtering & pagination** — Filter by status/priority/assignee, search by title, paginated results
+- ✅ **Role-based access control** — OWNER / MEMBER / VIEWER roles with per-operation permissions
+- ✅ **Assignee permissions** — Task assignees have special privileges for status changes
+- ✅ **Activity log** — Track status change history per task (in Prisma transaction)
+- ✅ **Data isolation** — Workspace-scoped data: users can only access their own workspaces via join-chain validation
+- 📋 **Invite links** — Email-based workspace invitations
+- 📋 **Email notifications** — Task assignment and status change alerts
+- 📋 **Drag-and-drop kanban board** — Visual task management
+- 📋 **Full audit log** — Complete change history tracking
 
 ## Data Flow
 
@@ -48,11 +52,12 @@ Reads go through Server Components — no extra network hop. Mutations go throug
 ```
 Remote Task Board
 ├── app/                   # Next.js App Router pages & API
-│   ├── (auth)/            # Login, register
-│   ├── dashboard/         # Main workspace dashboard
-│   ├── workspaces/        # Workspace pages
-│   ├── projects/          # Project pages
-│   ├── tasks/             # Task pages
+│   ├── (app)/             # Authenticated pages (shared layout with sidebar)
+│   │   ├── dashboard/     # Main workspace dashboard
+│   │   ├── workspaces/    # Workspace detail pages
+│   │   ├── projects/      # Project detail pages
+│   │   └── tasks/         # Task detail & list pages
+│   ├── (auth)/            # Login, register (no sidebar layout)
 │   └── api/               # Route Handlers (mutations only)
 │
 ├── components/            # UI components by domain

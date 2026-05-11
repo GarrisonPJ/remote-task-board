@@ -57,8 +57,5 @@ jobs:
 
       - run: pnpm build
 
-      - name: Start app & run E2E tests
-        run: |
-          pnpm start &> /tmp/next.log &
-          npx wait-on http://localhost:3000
-          pnpm test:e2e
+      - name: Run E2E tests
+        run: pnpm test:e2e
