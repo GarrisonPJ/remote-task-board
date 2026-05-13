@@ -4,6 +4,7 @@ import { getProjectById } from "@/services/project.service";
 import { listTasks } from "@/services/task.service";
 import { TaskList } from "@/components/task/TaskList";
 import { CreateTaskDialog } from "@/components/task/CreateTaskDialog";
+import { AiTaskDialog } from "@/components/task/AiTaskDialog";
 import Link from "next/link";
 
 export default async function ProjectDetailPage({
@@ -42,7 +43,12 @@ export default async function ProjectDetailPage({
       <section>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-semibold">Tasks</h2>
-          {userRole !== "VIEWER" && <CreateTaskDialog projectId={projectId} workspaceId={project.workspaceId} />}
+          {userRole !== "VIEWER" && (
+            <div className="flex gap-2">
+              <CreateTaskDialog projectId={projectId} workspaceId={project.workspaceId} />
+              <AiTaskDialog projectId={projectId} />
+            </div>
+          )}
         </div>
         <TaskList tasks={tasks.items} />
       </section>

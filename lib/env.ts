@@ -1,5 +1,6 @@
 const env = {
   DATABASE_URL: process.env.DATABASE_URL ?? "",
+  DEEPSEEK_API_KEY: process.env.DEEPSEEK_API_KEY ?? "",
   NODE_ENV: (process.env.NODE_ENV ?? "development") as
     | "development"
     | "production"
