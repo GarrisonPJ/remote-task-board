@@ -15,6 +15,7 @@ model User {
   assignedTasks Task[]           @relation("TaskAssignee")
   createdTasks  Task[]           @relation("TaskCreator")
   activityLogs ActivityLog[]
+  comments     Comment[]
   sessions     Session[]
 
   createdAt DateTime @default(now())
@@ -85,6 +86,7 @@ model Task {
   creator  User    @relation("TaskCreator", fields: [creatorId], references: [id])
 
   activityLogs ActivityLog[]
+  comments     Comment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -104,6 +106,19 @@ model ActivityLog {
   actor User @relation(fields: [actorId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
+
+  @@index([taskId, createdAt])
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  taskId    String
+  userId    String
+  content   String
+  createdAt DateTime @default(now())
+
+  task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
 
   @@index([taskId, createdAt])
 }
