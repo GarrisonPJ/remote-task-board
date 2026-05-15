@@ -61,3 +61,11 @@ export type ActivityLogDTO = {
   toStatus: TaskStatus;
   createdAt: string;
 };
+
+export type CommentDTO = {
+  id: string;
+  taskId: string;
+  user: UserDTO;
+  content: string;
+  createdAt: string;
+};
