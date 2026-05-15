@@ -1,7 +1,6 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import type { WorkspaceRole } from "@/types/domain";
@@ -37,8 +36,27 @@ function canChangeStatus(role: WorkspaceRole, assigneeId: string | null, userId:
 }
 
 export function TaskStatusControl({ taskId, currentStatus, userId, assigneeId, userRole }: Props) {
-  const router = useRouter();
-  const [changing, setChanging] = useState<string | null>(null);
+  const queryClient = useQueryClient();
+
+  const statusMutation = useMutation({
+    mutationFn: async (newStatus: string) => {
+      const res = await fetch(`/api/tasks/${taskId}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status: newStatus }),
+      });
+      const json = await res.json();
+      if (!json.success) throw new Error(json.error?.message ?? "Failed to update status");
+      return json.data;
+    },
+    onSuccess: (_data, newStatus) => {
+      toast.success(`Status changed to ${STATUS_LABELS[newStatus]}`);
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    },
+    onError: (err: Error) => {
+      toast.error(err.message);
+    },
+  });
 
   if (!canChangeStatus(userRole, assigneeId, userId)) return null;
 
@@ -46,25 +64,7 @@ export function TaskStatusControl({ taskId, currentStatus, userId, assigneeId, u
   if (!targets || targets.length === 0) return null;
 
   async function handleChange(newStatus: string) {
-    setChanging(newStatus);
-    try {
-      const res = await fetch(`/api/tasks/${taskId}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: newStatus }),
-      });
-      const json = await res.json();
-      if (!json.success) {
-        toast.error(json.error?.message ?? "Failed to update status");
-        return;
-      }
-      toast.success(`Status changed to ${STATUS_LABELS[newStatus]}`);
-      router.refresh();
-    } catch {
-      toast.error("Network error.");
-    } finally {
-      setChanging(null);
-    }
+    statusMutation.mutate(newStatus);
   }
 
   return (
@@ -77,10 +77,10 @@ export function TaskStatusControl({ taskId, currentStatus, userId, assigneeId, u
           key={target}
           variant={target === "CANCELED" ? "destructive" : "default"}
           size="sm"
-          disabled={changing !== null}
+          disabled={statusMutation.isPending}
           onClick={() => handleChange(target)}
         >
-          {changing === target ? "..." : STATUS_LABELS[target]}
+          {statusMutation.isPending && statusMutation.variables === target ? "..." : STATUS_LABELS[target]}
         </Button>
       ))}
     </div>
