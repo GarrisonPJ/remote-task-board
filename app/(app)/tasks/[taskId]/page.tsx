@@ -26,7 +26,7 @@ export default async function TaskDetailPage({
   const workspaceId = project.workspaceId;
 
   return (
-    <div className="space-y-8 max-w-2xl">
+    <div className="space-y-6 md:space-y-8 max-w-2xl">
       <div>
         <p className="text-sm text-muted-foreground">
           <Link href="/dashboard" className="hover:underline">Dashboard</Link>
@@ -70,7 +70,7 @@ export default async function TaskDetailPage({
         </section>
       )}
 
-      <section className="grid grid-cols-2 gap-4 text-sm">
+      <section className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
         {task.assignee && (
           <div>
             <span className="text-muted-foreground">Assignee</span>
