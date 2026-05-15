@@ -8,6 +8,8 @@ import { TaskEditDialog } from "@/components/task/TaskEditDialog";
 import { TaskDeleteButton } from "@/components/task/TaskDeleteButton";
 import { TaskStatusControl } from "@/components/task/TaskStatusControl";
 import { TaskActivityTimeline } from "@/components/task/TaskActivityTimeline";
+import { CommentList } from "@/components/comment/CommentList";
+import { CommentForm } from "@/components/comment/CommentForm";
 import Link from "next/link";
 
 export default async function TaskDetailPage({
@@ -98,6 +100,14 @@ export default async function TaskDetailPage({
       </section>
 
       {task.activityLogs && <TaskActivityTimeline logs={task.activityLogs} />}
+
+      <section>
+        <h2 className="text-lg font-semibold mb-4">Comments</h2>
+        <div className="space-y-4">
+          <CommentForm taskId={task.id} />
+          <CommentList taskId={task.id} />
+        </div>
+      </section>
     </div>
   );
 }
