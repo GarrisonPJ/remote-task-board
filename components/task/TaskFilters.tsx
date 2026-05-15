@@ -51,16 +51,16 @@ export function TaskFilters() {
   }, [query, currentQuery, updateFilter]);
 
   return (
-    <div className="flex flex-wrap gap-4">
+    <div className="flex flex-col sm:flex-row flex-wrap gap-3">
       <Input
         placeholder="Search tasks..."
         value={query}
         onChange={(e) => setQuery(e.target.value)}
-        className="max-w-xs"
+        className="w-full md:max-w-xs"
       />
 
       <Select value={currentStatus} onValueChange={(v) => updateFilter("status", v ?? "")}>
-        <SelectTrigger className="w-[150px]">
+        <SelectTrigger className="w-full sm:w-[150px]">
           <SelectValue placeholder="All Statuses" />
         </SelectTrigger>
         <SelectContent>
@@ -74,7 +74,7 @@ export function TaskFilters() {
       </Select>
 
       <Select value={currentPriority} onValueChange={(v) => v && updateFilter("priority", v)}>
-        <SelectTrigger className="w-[150px]">
+        <SelectTrigger className="w-full sm:w-[150px]">
           <SelectValue placeholder="All Priorities" />
         </SelectTrigger>
         <SelectContent>
