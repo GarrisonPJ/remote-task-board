@@ -1,6 +1,7 @@
 import { getUserFromSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { LogoutButton } from "@/components/layout/LogoutButton";
+import { QueryProvider } from "@/components/layout/QueryProvider";
 import { CreateWorkspaceDialog } from "@/components/workspace/CreateWorkspaceDialog";
 
 export default async function AppLayout({
@@ -34,7 +35,9 @@ export default async function AppLayout({
         <header className="flex items-center justify-between border-b px-6 py-3">
           <h1 className="text-lg font-medium">Remote Task Board</h1>
         </header>
-        <main className="flex-1 overflow-auto p-6">{children}</main>
+        <main className="flex-1 overflow-auto p-6">
+              <QueryProvider>{children}</QueryProvider>
+            </main>
       </div>
     </div>
   );
