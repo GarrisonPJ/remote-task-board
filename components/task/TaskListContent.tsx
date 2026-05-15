@@ -3,6 +3,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { TaskTable } from "./TaskTable";
+import { TaskList } from "./TaskList";
 import { TaskFilters } from "./TaskFilters";
 import { TaskTableSkeleton } from "./TaskTableSkeleton";
 import {
@@ -70,7 +71,14 @@ export function TaskListContent() {
         <p className="text-muted-foreground text-sm py-8 text-center">No tasks found.</p>
       ) : data ? (
         <>
-          <TaskTable tasks={data.items} />
+          {/* Mobile: card layout */}
+          <div className="md:hidden">
+            <TaskList tasks={data.items} />
+          </div>
+          {/* Desktop: table layout */}
+          <div className="hidden md:block">
+            <TaskTable tasks={data.items} />
+          </div>
 
           {data.meta.totalPages > 1 && (
             <Pagination>
