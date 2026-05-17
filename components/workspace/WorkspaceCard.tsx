@@ -9,9 +9,9 @@ import {
   Card,
   CardHeader,
   CardTitle,
-  CardContent,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { FolderKanban } from "lucide-react";
 import type { WorkspaceDTO } from "@/types/domain";
 
 const ROLE_LABELS: Record<string, string> = {
@@ -23,14 +23,20 @@ const ROLE_LABELS: Record<string, string> = {
 export function WorkspaceCard({ workspace }: { workspace: WorkspaceDTO }) {
   return (
     <Link href={`/workspaces/${workspace.id}`}>
-      <Card className="hover:bg-muted/50 transition-colors cursor-pointer">
+      <Card className="group hover:shadow-md hover:border-primary/20 transition-all duration-200 cursor-pointer">
         <CardHeader>
-          <CardTitle className="text-lg">{workspace.name}</CardTitle>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-200">
+              <FolderKanban className="h-5 w-5" />
+            </div>
+            <div>
+              <CardTitle className="text-lg">{workspace.name}</CardTitle>
+              <Badge variant="secondary" className="mt-1">
+                {ROLE_LABELS[workspace.role] ?? workspace.role}
+              </Badge>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent>
-          <Badge variant="secondary">{ROLE_LABELS[workspace.role] ?? workspace.role}</Badge>
-          {/* TODO: 显示成员数量和项目数量 */}
-        </CardContent>
       </Card>
     </Link>
   );

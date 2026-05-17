@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { LogOut } from "lucide-react";
 
 export function LogoutButton() {
   const router = useRouter();
@@ -10,6 +11,7 @@ export function LogoutButton() {
     try {
       const res = await fetch("/api/auth/logout", { method: "POST" });
       if (res.ok) {
+        toast.success("Logged out successfully");
         router.push("/login");
         router.refresh();
       }
@@ -21,8 +23,9 @@ export function LogoutButton() {
   return (
     <button
       onClick={handleLogout}
-      className="w-full text-left px-3 py-2 rounded-md text-sm text-muted-foreground hover:bg-muted transition-colors"
+      className="flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
     >
+      <LogOut className="h-4 w-4" />
       Logout
     </button>
   );

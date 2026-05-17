@@ -14,27 +14,27 @@ export function TaskTable({ tasks, showProject }: Props) {
   }
 
   return (
-    <div className="overflow-x-auto">
+    <div className="rounded-xl border bg-card overflow-hidden">
       <table className="w-full text-sm">
         <thead>
-          <tr className="border-b">
-            <th className="text-left py-3 px-3 font-medium text-muted-foreground">Title</th>
-            <th className="text-left py-3 px-3 font-medium text-muted-foreground">Status</th>
-            <th className="text-left py-3 px-3 font-medium text-muted-foreground">Priority</th>
-            <th className="text-left py-3 px-3 font-medium text-muted-foreground">Assignee</th>
+          <tr className="border-b bg-muted/30">
+            <th className="text-left py-3 px-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Title</th>
+            <th className="text-left py-3 px-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Status</th>
+            <th className="text-left py-3 px-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Priority</th>
+            <th className="text-left py-3 px-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Assignee</th>
             {showProject && (
-              <th className="text-left py-3 px-3 font-medium text-muted-foreground">Project</th>
+              <th className="text-left py-3 px-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Project</th>
             )}
-            <th className="text-right py-3 px-3 font-medium text-muted-foreground">Updated</th>
+            <th className="text-right py-3 px-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Updated</th>
           </tr>
         </thead>
         <tbody>
-          {tasks.map((task) => (
-            <tr key={task.id} className="border-b hover:bg-muted/50 transition-colors">
-              <td className="py-2.5 px-3">
+          {tasks.map((task, idx) => (
+            <tr key={task.id} className={`border-b last:border-b-0 hover:bg-muted/40 transition-colors ${idx % 2 === 0 ? 'bg-background' : 'bg-muted/10'}`}>
+              <td className="py-3 px-4">
                 <Link
                   href={`/tasks/${task.id}`}
-                  className="font-medium hover:underline"
+                  className="font-medium text-foreground hover:text-primary transition-colors"
                 >
                   {task.title}
                 </Link>
@@ -44,21 +44,21 @@ export function TaskTable({ tasks, showProject }: Props) {
                   </p>
                 )}
               </td>
-              <td className="py-2.5 px-3">
+              <td className="py-3 px-4">
                 <TaskStatusBadge status={task.status} />
               </td>
-              <td className="py-2.5 px-3">
+              <td className="py-3 px-4">
                 <TaskPriorityBadge priority={task.priority} />
               </td>
-              <td className="py-2.5 px-3 text-muted-foreground text-xs">
+              <td className="py-3 px-4 text-muted-foreground text-xs">
                 {task.assignee?.name ?? <span className="text-muted-foreground/50">&mdash;</span>}
               </td>
               {showProject && (
-                <td className="py-2.5 px-3 text-muted-foreground text-xs">
+                <td className="py-3 px-4 text-muted-foreground text-xs">
                   &mdash;
                 </td>
               )}
-              <td className="py-2.5 px-3 text-right text-xs text-muted-foreground">
+              <td className="py-3 px-4 text-right text-xs text-muted-foreground">
                 {timeAgo(task.updatedAt)}
               </td>
             </tr>

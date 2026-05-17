@@ -27,7 +27,30 @@
       "Bash(grep -v \"^$\")",
       "Read(//home/garry/.config/nvim/**)",
       "Read(//home/garry/.config/nvim/lua/**)",
-      "Bash(npm list *)"
+      "Bash(npm list *)",
+      "WebSearch",
+      "Skill(brainstorming)",
+      "Skill(superpowers:writing-plans)",
+      "Skill(superpowers:subagent-driven-development)",
+      "Skill(superpowers:brainstorming)",
+      "Bash(echo \"EXIT: $?\")",
+      "Bash(/home/garry/.claude/plugins/cache/claude-plugins-official/superpowers/5.1.0/skills/brainstorming/scripts/start-server.sh *)",
+      "Bash(service postgresql *)",
+      "Bash(dpkg -l)",
+      "Read(//usr/lib/**)",
+      "Read(//etc/**)",
+      "Bash(psql -U *)",
+      "Bash(PGHOST=/var/run/postgresql psql -U postgres -c \"SELECT 1;\")",
+      "Bash(PGPASSWORD=\"\" psql -U postgres -h localhost -c \"SELECT 1;\")",
+      "Bash(PGPASSWORD=\"postgres\" psql -U postgres -h localhost -c \"SELECT 1;\")",
+      "Bash(PGPASSWORD=postgres psql *)",
+      "Bash(PGPASSWORD=postgres PGHOST=localhost PGUSER=postgres psql *)",
+      "Bash(npx prisma *)",
+      "Bash(DATABASE_URL=postgresql://postgres:postgres@localhost:5432/remote_task_board npx prisma *)",
+      "Bash(pnpm dev *)",
+      "Bash(npx dotenv *)",
+      "Bash(curl *)",
+      "Bash(npx tsc *)"
     ]
   }
 }
