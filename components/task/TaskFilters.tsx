@@ -60,7 +60,7 @@ export function TaskFilters() {
       />
 
       <Select value={currentStatus} onValueChange={(v) => updateFilter("status", v ?? "")}>
-        <SelectTrigger className="w-full sm:w-[150px]">
+        <SelectTrigger className="w-full sm:w-[150px] min-h-[44px] sm:min-h-0">
           <SelectValue placeholder="All Statuses" />
         </SelectTrigger>
         <SelectContent>
@@ -74,7 +74,7 @@ export function TaskFilters() {
       </Select>
 
       <Select value={currentPriority} onValueChange={(v) => v && updateFilter("priority", v)}>
-        <SelectTrigger className="w-full sm:w-[150px]">
+        <SelectTrigger className="w-full sm:w-[150px] min-h-[44px] sm:min-h-0">
           <SelectValue placeholder="All Priorities" />
         </SelectTrigger>
         <SelectContent>

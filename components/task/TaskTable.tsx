@@ -14,23 +14,23 @@ export function TaskTable({ tasks, showProject }: Props) {
   }
 
   return (
-    <div className="rounded-xl border bg-card overflow-hidden">
+    <div className="rounded-xl border bg-card overflow-hidden shadow-sm">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b bg-muted/30">
-            <th className="text-left py-3 px-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Title</th>
-            <th className="text-left py-3 px-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Status</th>
-            <th className="text-left py-3 px-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Priority</th>
-            <th className="text-left py-3 px-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Assignee</th>
+            <th className="text-left py-3 px-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground/80">Title</th>
+            <th className="text-left py-3 px-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground/80">Status</th>
+            <th className="text-left py-3 px-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground/80">Priority</th>
+            <th className="text-left py-3 px-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground/80">Assignee</th>
             {showProject && (
-              <th className="text-left py-3 px-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Project</th>
+              <th className="text-left py-3 px-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground/80">Project</th>
             )}
-            <th className="text-right py-3 px-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground">Updated</th>
+            <th className="text-right py-3 px-4 font-semibold text-xs uppercase tracking-wider text-muted-foreground/80">Updated</th>
           </tr>
         </thead>
         <tbody>
           {tasks.map((task, idx) => (
-            <tr key={task.id} className={`border-b last:border-b-0 hover:bg-muted/40 transition-colors ${idx % 2 === 0 ? 'bg-background' : 'bg-muted/10'}`}>
+            <tr key={task.id} className={`animate-fade-in border-b last:border-b-0 hover:bg-primary/[0.04] transition-colors ${idx % 2 === 0 ? 'bg-background' : 'bg-primary/[0.015]'}`} style={{ animationDelay: `${idx * 0.03}s` }}>
               <td className="py-3 px-4">
                 <Link
                   href={`/tasks/${task.id}`}

@@ -5,8 +5,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-plus-jakarta);
+  --font-mono: var(--font-plus-jakarta);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -56,72 +56,72 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(0.97 0.005 85);
-  --foreground: oklch(0.15 0.01 285);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.15 0.01 285);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.15 0.01 285);
-  --primary: oklch(0.55 0.22 268);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.92 0.01 285);
-  --secondary-foreground: oklch(0.25 0.015 285);
-  --muted: oklch(0.94 0.008 285);
-  --muted-foreground: oklch(0.50 0.015 285);
-  --accent: oklch(0.55 0.22 268 / 0.08);
-  --accent-foreground: oklch(0.45 0.20 268);
-  --destructive: oklch(0.58 0.20 22);
-  --border: oklch(0.88 0.01 285);
-  --input: oklch(0.88 0.01 285);
-  --ring: oklch(0.55 0.22 268);
-  --chart-1: oklch(0.55 0.22 268);
-  --chart-2: oklch(0.50 0.18 175);
-  --chart-3: oklch(0.65 0.20 70);
-  --chart-4: oklch(0.55 0.22 330);
-  --chart-5: oklch(0.50 0.20 20);
-  --sidebar: oklch(0.98 0.005 85);
-  --sidebar-foreground: oklch(0.20 0.01 285);
-  --sidebar-primary: oklch(0.55 0.22 268);
-  --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.55 0.22 268 / 0.08);
-  --sidebar-accent-foreground: oklch(0.45 0.20 268);
-  --sidebar-border: oklch(0.88 0.01 285);
-  --sidebar-ring: oklch(0.55 0.22 268);
+  --background: #F0FDFA;
+  --foreground: #134E4A;
+  --card: #FFFFFF;
+  --card-foreground: #134E4A;
+  --popover: #FFFFFF;
+  --popover-foreground: #134E4A;
+  --primary: #0D9488;
+  --primary-foreground: #FFFFFF;
+  --secondary: #14B8A6;
+  --secondary-foreground: #FFFFFF;
+  --muted: #E8F1F4;
+  --muted-foreground: #64748B;
+  --accent: #EA580C;
+  --accent-foreground: #FFFFFF;
+  --destructive: #DC2626;
+  --border: #CCFBF1;
+  --input: #CCFBF1;
+  --ring: #0D9488;
+  --chart-1: #0D9488;
+  --chart-2: #14B8A6;
+  --chart-3: #EA580C;
+  --chart-4: #8B5CF6;
+  --chart-5: #EC4899;
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #134E4A;
+  --sidebar-primary: #0D9488;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #E8F1F4;
+  --sidebar-accent-foreground: #0D9488;
+  --sidebar-border: #CCFBF1;
+  --sidebar-ring: #0D9488;
 }
 
 .dark {
-  --radius: 0.5rem;
-  --background: oklch(0.129 0.004 285);
-  --foreground: oklch(0.95 0.003 286);
-  --card: oklch(0.16 0.005 285);
-  --card-foreground: oklch(0.95 0.003 286);
-  --popover: oklch(0.17 0.006 285);
-  --popover-foreground: oklch(0.95 0.003 286);
-  --primary: oklch(0.68 0.18 268);
-  --primary-foreground: oklch(1 0 0);
-  --secondary: oklch(0.20 0.006 285);
-  --secondary-foreground: oklch(0.88 0.004 286);
-  --muted: oklch(0.18 0.005 285);
-  --muted-foreground: oklch(0.55 0.008 286);
-  --accent: oklch(0.68 0.18 268 / 0.12);
-  --accent-foreground: oklch(0.82 0.12 268);
-  --destructive: oklch(0.58 0.20 22);
-  --border: oklch(1 0 0 / 0.08);
-  --input: oklch(1 0 0 / 0.10);
-  --ring: oklch(0.68 0.18 268);
-  --chart-1: oklch(0.68 0.18 268);
-  --chart-2: oklch(0.58 0.18 175);
-  --chart-3: oklch(0.72 0.20 70);
-  --chart-4: oklch(0.65 0.22 330);
-  --chart-5: oklch(0.60 0.20 20);
-  --sidebar: oklch(0.11 0.004 285);
-  --sidebar-foreground: oklch(0.85 0.004 286);
-  --sidebar-primary: oklch(0.68 0.18 268);
-  --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.18 0.005 285);
-  --sidebar-accent-foreground: oklch(0.88 0.004 286);
-  --sidebar-border: oklch(1 0 0 / 0.06);
-  --sidebar-ring: oklch(0.68 0.18 268);
+  --radius: 0.625rem;
+  --background: #0B1D1B;
+  --foreground: #E2F0EE;
+  --card: #112926;
+  --card-foreground: #E2F0EE;
+  --popover: #112926;
+  --popover-foreground: #E2F0EE;
+  --primary: #2DD4BF;
+  --primary-foreground: #042F2E;
+  --secondary: #5EEAD4;
+  --secondary-foreground: #042F2E;
+  --muted: #1A3633;
+  --muted-foreground: #A0B9B6;
+  --accent: #FB923C;
+  --accent-foreground: #042F2E;
+  --destructive: #DC2626;
+  --border: #1E3D39;
+  --input: #1E3D39;
+  --ring: #2DD4BF;
+  --chart-1: #2DD4BF;
+  --chart-2: #5EEAD4;
+  --chart-3: #FB923C;
+  --chart-4: #A78BFA;
+  --chart-5: #F472B6;
+  --sidebar: #112926;
+  --sidebar-foreground: #E2F0EE;
+  --sidebar-primary: #2DD4BF;
+  --sidebar-primary-foreground: #042F2E;
+  --sidebar-accent: #1A3633;
+  --sidebar-accent-foreground: #2DD4BF;
+  --sidebar-border: #1E3D39;
+  --sidebar-ring: #2DD4BF;
 }
 
 @layer base {
@@ -142,3 +142,98 @@
 @utility stagger-2 { animation-delay: 0.10s; }
 @utility stagger-3 { animation-delay: 0.15s; }
 @utility stagger-4 { animation-delay: 0.20s; }
+@utility stagger-5 { animation-delay: 0.25s; }
+@utility stagger-6 { animation-delay: 0.30s; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ─── Status & Priority Badges ─── */
+/* Use !important to override Tailwind utility classes from shadcn Badge */
+.badge-todo {
+  background: #F1F5F9 !important;
+  color: #475569 !important;
+  box-shadow: inset 0 0 0 1px #E2E8F0 !important;
+}
+.dark .badge-todo {
+  background: #1E293B !important;
+  color: #94A3B8 !important;
+  box-shadow: inset 0 0 0 1px #334155 !important;
+}
+
+.badge-in_progress {
+  background: #DBEAFE !important;
+  color: #1D4ED8 !important;
+}
+.dark .badge-in_progress {
+  background: #1E3A5F !important;
+  color: #93C5FD !important;
+}
+
+.badge-in_review {
+  background: #FEF3C7 !important;
+  color: #B45309 !important;
+}
+.dark .badge-in_review {
+  background: #3D2E1A !important;
+  color: #FCD34D !important;
+}
+
+.badge-done {
+  background: #D1FAE5 !important;
+  color: #065F46 !important;
+}
+.dark .badge-done {
+  background: #064E3B !important;
+  color: #6EE7B7 !important;
+}
+
+.badge-canceled {
+  background: #FEE2E2 !important;
+  color: #991B1B !important;
+}
+.dark .badge-canceled {
+  background: #3B1C1C !important;
+  color: #FCA5A5 !important;
+}
+
+.badge-urgent {
+  background: #FEE2E2 !important;
+  color: #DC2626 !important;
+}
+.dark .badge-urgent {
+  background: #3B1C1C !important;
+  color: #F87171 !important;
+}
+
+.badge-high {
+  background: #FEF3C7 !important;
+  color: #D97706 !important;
+}
+.dark .badge-high {
+  background: #3D2E1A !important;
+  color: #FBBF24 !important;
+}
+
+.badge-medium {
+  background: #DBEAFE !important;
+  color: #2563EB !important;
+}
+.dark .badge-medium {
+  background: #1E3A5F !important;
+  color: #93C5FD !important;
+}
+
+.badge-low {
+  background: #F1F5F9 !important;
+  color: #64748B !important;
+}
+.dark .badge-low {
+  background: #1E293B !important;
+  color: #94A3B8 !important;
+}

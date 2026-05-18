@@ -1,11 +1,11 @@
-import Link from "next/link";
-import { Layers, LayoutDashboard } from "lucide-react";
+import { Layers } from "lucide-react";
 import { getUserFromSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { LogoutButton } from "@/components/layout/LogoutButton";
 import { QueryProvider } from "@/components/layout/QueryProvider";
 import { CreateWorkspaceDialog } from "@/components/workspace/CreateWorkspaceDialog";
 import { MobileNav } from "@/components/layout/MobileNav";
+import { SidebarNav } from "@/components/layout/SidebarNav";
 
 export default async function AppLayout({
   children,
@@ -24,16 +24,8 @@ export default async function AppLayout({
           </div>
           <span className="font-semibold">Remote Task Board</span>
         </div>
-        <nav className="flex-1 space-y-1 p-3">
-          <Link
-            href="/dashboard"
-            className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-colors"
-          >
-            <LayoutDashboard className="h-4 w-4" />
-            Dashboard
-          </Link>
-          <CreateWorkspaceDialog />
-        </nav>
+        <SidebarNav />
+        <CreateWorkspaceDialog />
         <div className="border-t p-3 space-y-3">
           <div className="flex items-center gap-3 px-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-semibold">

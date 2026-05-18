@@ -26,7 +26,7 @@ type TaskCardProps = {
 export function TaskCard({ task }: TaskCardProps) {
   return (
     <Link href={`/tasks/${task.id}`}>
-      <Card className="hover:bg-muted/50 transition-colors cursor-pointer h-full">
+      <Card className="hover:bg-muted/50 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 active:scale-95 cursor-pointer h-full">
         <CardHeader>
           <CardTitle className="text-base">{task.title}</CardTitle>
         </CardHeader>

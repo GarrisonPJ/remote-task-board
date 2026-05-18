@@ -8,7 +8,7 @@ type Props = {
 };
 
 export function CommentList({ taskId }: Props) {
-  const { data: comments, isLoading, error } = useQuery<CommentDTO[]>({
+  const { data: comments, isLoading, error, refetch } = useQuery<CommentDTO[]>({
     queryKey: ["comments", taskId],
     queryFn: async () => {
       const res = await fetch(`/api/tasks/${taskId}/comments`);
@@ -32,7 +32,17 @@ export function CommentList({ taskId }: Props) {
   }
 
   if (error) {
-    return <p className="text-sm text-destructive">Failed to load comments.</p>;
+    return (
+      <div className="flex items-center gap-2">
+        <p className="text-sm text-destructive">Failed to load comments.</p>
+        <button
+          onClick={() => refetch()}
+          className="text-sm text-primary hover:underline"
+        >
+          Retry
+        </button>
+      </div>
+    );
   }
 
   if (!comments || comments.length === 0) {

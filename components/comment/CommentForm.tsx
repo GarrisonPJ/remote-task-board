@@ -5,6 +5,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
 
 type Props = {
   taskId: string;
@@ -51,7 +52,7 @@ export function CommentForm({ taskId }: Props) {
         className="flex-1"
       />
       <Button type="submit" size="sm" disabled={!content.trim() || mutation.isPending}>
-        {mutation.isPending ? "..." : "Post"}
+        {mutation.isPending ? <><Spinner className="h-3.5 w-3.5" /> Posting...</> : "Post"}
       </Button>
     </form>
   );

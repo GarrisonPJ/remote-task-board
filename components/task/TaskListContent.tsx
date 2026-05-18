@@ -15,6 +15,7 @@ import {
   PaginationPrevious,
   PaginationEllipsis,
 } from "@/components/ui/pagination";
+import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import type { PaginatedResponse } from "@/types/api";
 import type { TaskDTO } from "@/types/domain";
@@ -25,7 +26,7 @@ export function TaskListContent() {
   const queryString = searchParams.toString();
   const currentPage = Number(searchParams.get("page") ?? 1);
 
-  const { data, isLoading, error } = useQuery<PaginatedResponse<TaskDTO>>({
+  const { data, isLoading, error, refetch } = useQuery<PaginatedResponse<TaskDTO>>({
     queryKey: ["tasks", queryString],
     queryFn: async () => {
       const res = await fetch(`/api/tasks?${queryString}`);
@@ -58,17 +59,32 @@ export function TaskListContent() {
       {isLoading ? (
         <TaskTableSkeleton />
       ) : error ? (
-        <div className="text-center py-8">
-          <p className="text-destructive mb-2">Failed to load tasks.</p>
-          <button
-            onClick={() => window.location.reload()}
-            className="text-sm text-primary hover:underline"
-          >
+        <div className="flex flex-col items-center justify-center py-12 text-center">
+          <svg className="h-12 w-12 text-destructive/60 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+          </svg>
+          <p className="text-destructive font-medium">Failed to load tasks</p>
+          <p className="text-sm text-muted-foreground mt-1 mb-4">
+            {error instanceof Error ? error.message : "An unexpected error occurred."}
+          </p>
+          <Button size="sm" variant="outline" onClick={() => refetch()}>
             Try again
-          </button>
+          </Button>
         </div>
       ) : data && data.items.length === 0 ? (
-        <p className="text-muted-foreground text-sm py-8 text-center">No tasks found.</p>
+        <div className="flex flex-col items-center justify-center py-16 text-center">
+          <svg className="h-16 w-16 text-muted-foreground/30 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+          </svg>
+          <p className="text-lg font-medium">No tasks found</p>
+          <p className="text-muted-foreground mt-1">
+            Try adjusting your filters or{" "}
+            <Link href="/tasks" className="text-primary hover:underline">
+              clear all filters
+            </Link>
+            .
+          </p>
+        </div>
       ) : data ? (
         <>
           {/* Mobile: card layout */}

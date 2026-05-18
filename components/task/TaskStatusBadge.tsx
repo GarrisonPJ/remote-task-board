@@ -1,19 +1,12 @@
-/**
- * TaskStatusBadge — 任务状态标签（完整实现，可直接使用）
- *
- * 将 TaskStatus 枚举值映射到 shadcn/ui 的 Badge 组件变体。
- * 这是一个纯展示组件，无需状态管理。
- */
-
 import { Badge } from "@/components/ui/badge";
 import type { TaskStatus } from "@/types/domain";
 
-const STATUS_VARIANTS: Record<TaskStatus, "default" | "secondary" | "destructive" | "outline"> = {
-  TODO: "secondary",
-  IN_PROGRESS: "default",
-  IN_REVIEW: "outline",
-  DONE: "default",
-  CANCELED: "destructive",
+const STATUS_CLASSES: Record<TaskStatus, string> = {
+  TODO: "badge-todo",
+  IN_PROGRESS: "badge-in_progress",
+  IN_REVIEW: "badge-in_review",
+  DONE: "badge-done",
+  CANCELED: "badge-canceled",
 };
 
 const STATUS_LABELS: Record<TaskStatus, string> = {
@@ -25,5 +18,9 @@ const STATUS_LABELS: Record<TaskStatus, string> = {
 };
 
 export function TaskStatusBadge({ status }: { status: TaskStatus }) {
-  return <Badge variant={STATUS_VARIANTS[status]}>{STATUS_LABELS[status]}</Badge>;
+  return (
+    <Badge variant="ghost" className={STATUS_CLASSES[status]}>
+      {STATUS_LABELS[status]}
+    </Badge>
+  );
 }

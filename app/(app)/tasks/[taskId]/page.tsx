@@ -56,7 +56,7 @@ export default async function TaskDetailPage({
       </div>
 
       {/* Status control */}
-      <div className="rounded-xl border bg-card p-4">
+      <div className="rounded-xl border bg-card p-4 animate-slide-up stagger-2">
         <TaskStatusControl
           taskId={task.id}
           currentStatus={task.status}
@@ -68,7 +68,7 @@ export default async function TaskDetailPage({
 
       {/* Description */}
       {task.description && (
-        <section className="rounded-xl border bg-card p-5 space-y-3">
+        <section className="rounded-xl border bg-card p-5 space-y-3 animate-slide-up stagger-2">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Description</h2>
           <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">
             {task.description}
@@ -77,7 +77,7 @@ export default async function TaskDetailPage({
       )}
 
       {/* Metadata grid */}
-      <section className="rounded-xl border bg-card p-5 space-y-3">
+      <section className="rounded-xl border bg-card p-5 space-y-3 animate-slide-up stagger-3">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Details</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           {task.assignee && (
@@ -105,14 +105,14 @@ export default async function TaskDetailPage({
 
       {/* Activity timeline */}
       {task.activityLogs && (
-        <section className="rounded-xl border bg-card p-5 space-y-3">
+        <section className="rounded-xl border bg-card p-5 space-y-3 animate-slide-up stagger-4">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Activity</h2>
           <TaskActivityTimeline logs={task.activityLogs} />
         </section>
       )}
 
       {/* Comments */}
-      <section className="rounded-xl border bg-card p-5 space-y-3">
+      <section className="rounded-xl border bg-card p-5 space-y-3 animate-slide-up stagger-5">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Comments</h2>
         <div className="space-y-4">
           <CommentForm taskId={task.id} />

@@ -1,17 +1,17 @@
-/**
- * TaskPriorityBadge — 任务优先级标签（完整实现，可直接使用）
- */
-
 import { Badge } from "@/components/ui/badge";
 import type { TaskPriority } from "@/types/domain";
 
-const PRIORITY_VARIANTS: Record<TaskPriority, "default" | "secondary" | "destructive" | "outline"> = {
-  LOW: "outline",
-  MEDIUM: "secondary",
-  HIGH: "default",
-  URGENT: "destructive",
+const PRIORITY_CLASSES: Record<TaskPriority, string> = {
+  LOW: "badge-low",
+  MEDIUM: "badge-medium",
+  HIGH: "badge-high",
+  URGENT: "badge-urgent",
 };
 
 export function TaskPriorityBadge({ priority }: { priority: TaskPriority }) {
-  return <Badge variant={PRIORITY_VARIANTS[priority]}>{priority}</Badge>;
+  return (
+    <Badge variant="ghost" className={PRIORITY_CLASSES[priority]}>
+      {priority}
+    </Badge>
+  );
 }

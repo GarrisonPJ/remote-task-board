@@ -3,6 +3,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import type { WorkspaceRole } from "@/types/domain";
 
 const VALID_TRANSITIONS: Record<string, string[]> = {
@@ -80,7 +81,7 @@ export function TaskStatusControl({ taskId, currentStatus, userId, assigneeId, u
           disabled={statusMutation.isPending}
           onClick={() => handleChange(target)}
         >
-          {statusMutation.isPending && statusMutation.variables === target ? "..." : STATUS_LABELS[target]}
+          {statusMutation.isPending && statusMutation.variables === target ? <><Spinner className="h-3.5 w-3.5" /> {STATUS_LABELS[target]}</> : STATUS_LABELS[target]}
         </Button>
       ))}
     </div>
