@@ -25,31 +25,22 @@ type TaskCardProps = {
 
 export function TaskCard({ task }: TaskCardProps) {
   return (
-    <Link href={`/tasks/${task.id}`}>
-      <Card className="hover:bg-muted/50 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 active:scale-95 cursor-pointer h-full">
-        <CardHeader>
-          <CardTitle className="text-base">{task.title}</CardTitle>
+    <Link href={`/tasks/${task.id}`} className="block h-full">
+      <Card className="shadow-sm ring-0 border-foreground/10 hover:bg-muted/50 hover:-translate-y-0.5 hover:shadow-md transition-all duration-200 active:scale-95 cursor-pointer h-full flex flex-col">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base line-clamp-1">{task.title}</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-2">
-          {task.description && (
-            <p className="text-sm text-muted-foreground line-clamp-2">
-              {task.description}
-            </p>
-          )}
+        <CardContent className="flex-1 space-y-2">
+          <p className="text-sm text-muted-foreground line-clamp-2 min-h-[2.5em]">
+            {task.description || " "}
+          </p>
           <div className="flex gap-2">
             <TaskStatusBadge status={task.status} />
             <TaskPriorityBadge priority={task.priority} />
           </div>
         </CardContent>
-        <CardFooter className="text-xs text-muted-foreground flex justify-between">
-          {/* TODO: 显示 assignee 名字（如果有的话） */}
-          {task.assignee && <span>{task.assignee.name}</span>}
-
-          {/* TODO: 显示截止日期（格式化显示）
-          {task.dueDate && (
-            <span>Due: {new Date(task.dueDate).toLocaleDateString()}</span>
-          )}
-          */}
+        <CardFooter className="text-xs text-muted-foreground flex justify-between pt-0 min-h-[1.5em]">
+          <span>{task.assignee?.name ?? <span className="text-muted-foreground/50">&mdash;</span>}</span>
         </CardFooter>
       </Card>
     </Link>
