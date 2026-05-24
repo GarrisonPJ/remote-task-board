@@ -4,16 +4,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import { VALID_TRANSITIONS, canUpdateTaskStatus } from "@/lib/constants";
+import { VALID_TRANSITIONS, canUpdateTaskStatus, STATUS_LABELS } from "@/lib/constants";
 import type { WorkspaceRole, TaskStatus } from "@/lib/constants";
-
-const STATUS_LABELS: Record<string, string> = {
-  TODO: "To Do",
-  IN_PROGRESS: "In Progress",
-  IN_REVIEW: "In Review",
-  DONE: "Done",
-  CANCELED: "Canceled",
-};
 
 type Props = {
   taskId: string;

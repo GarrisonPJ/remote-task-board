@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { fail } from "@/lib/api-response";
 import { registerSchema } from "@/schemas/auth.schema";
 import { register } from "@/services/auth.service";
+import { SESSION_COOKIE_OPTIONS } from "@/lib/cookie-options";
 
 export async function POST(req: NextRequest) {
   try {
@@ -19,13 +20,7 @@ export async function POST(req: NextRequest) {
       { success: true, data: user },
       { status: 201 }
     );
-    response.cookies.set("session_id", sessionId, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 7 * 24 * 60 * 60,
-    });
+    response.cookies.set("session_id", sessionId, SESSION_COOKIE_OPTIONS);
 
     return response;
   } catch (error) {

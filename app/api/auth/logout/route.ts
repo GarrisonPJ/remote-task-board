@@ -13,6 +13,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { fail } from "@/lib/api-response";
 import { requireUser } from "@/lib/auth";
 import { logout } from "@/services/auth.service";
+import { SESSION_COOKIE_OPTIONS } from "@/lib/cookie-options";
 
 export async function POST(req: NextRequest) {
   try {
@@ -27,13 +28,7 @@ export async function POST(req: NextRequest) {
       { status: 200 }
     );
 
-    response.cookies.set("session_id", "", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 0, // 立即过期
-    });
+    response.cookies.set("session_id", "", { ...SESSION_COOKIE_OPTIONS, maxAge: 0 });
 
     return response;
   } catch (error) {

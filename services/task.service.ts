@@ -20,6 +20,7 @@ import type {
 } from "@/schemas/task.schema";
 import type { WorkspaceRole } from "@/lib/constants";
 import type { TaskDTO } from "@/types/domain";
+import { toTaskDTO } from "./task-mapper";
 
 export { listTasks } from "./task-list.service";
 
@@ -194,19 +195,7 @@ export async function createTask(
     },
   });
 
-  return {
-    id: task.id,
-    projectId: task.projectId,
-    title: task.title,
-    description: task.description,
-    status: task.status,
-    priority: task.priority,
-    creatorId: task.creatorId,
-    assignee: task.assignee ?? null,
-    dueDate: task.dueDate?.toISOString() ?? null,
-    createdAt: task.createdAt.toISOString(),
-    updatedAt: task.updatedAt.toISOString(),
-  };
+  return toTaskDTO(task);
 }
 
 // ============================================================
@@ -260,19 +249,7 @@ export async function updateTaskStatus(
     }),
   ]);
 
-  return {
-    id: updatedTask.id,
-    projectId: updatedTask.projectId,
-    title: updatedTask.title,
-    description: updatedTask.description,
-    status: updatedTask.status,
-    priority: updatedTask.priority,
-    creatorId: updatedTask.creatorId,
-    assignee: updatedTask.assignee ?? null,
-    dueDate: updatedTask.dueDate?.toISOString() ?? null,
-    createdAt: updatedTask.createdAt.toISOString(),
-    updatedAt: updatedTask.updatedAt.toISOString(),
-  };
+  return toTaskDTO(updatedTask);
 }
 
 // ============================================================
@@ -318,27 +295,7 @@ export async function getTaskById(
   if (!member) throw new NotFoundError("Task");
 
   return {
-    task: {
-      id: t.id,
-      projectId: t.projectId,
-      title: t.title,
-      description: t.description,
-      status: t.status,
-      priority: t.priority,
-      creatorId: t.creatorId,
-      assignee: t.assignee ?? null,
-      dueDate: t.dueDate?.toISOString() ?? null,
-      activityLogs: t.activityLogs.map((log) => ({
-        id: log.id,
-        taskId: log.taskId,
-        actor: log.actor,
-        fromStatus: log.fromStatus,
-        toStatus: log.toStatus,
-        createdAt: log.createdAt.toISOString(),
-      })),
-      createdAt: t.createdAt.toISOString(),
-      updatedAt: t.updatedAt.toISOString(),
-    },
+    task: toTaskDTO(t),
     userRole: member.role as WorkspaceRole,
   };
 }
@@ -377,19 +334,7 @@ export async function updateTask(
     },
   });
 
-  return {
-    id: updated.id,
-    projectId: updated.projectId,
-    title: updated.title,
-    description: updated.description,
-    status: updated.status,
-    priority: updated.priority,
-    creatorId: updated.creatorId,
-    assignee: updated.assignee ?? null,
-    dueDate: updated.dueDate?.toISOString() ?? null,
-    createdAt: updated.createdAt.toISOString(),
-    updatedAt: updated.updatedAt.toISOString(),
-  };
+  return toTaskDTO(updated);
 }
 
 // ============================================================

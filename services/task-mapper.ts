@@ -1,0 +1,47 @@
+import type { TaskDTO } from "@/types/domain";
+
+export type PrismaTaskRow = {
+  id: string;
+  projectId: string;
+  title: string;
+  description: string | null;
+  status: string;
+  priority: string;
+  creatorId: string;
+  createdAt: Date;
+  updatedAt: Date;
+  assignee?: { id: string; name: string; email: string } | null;
+  dueDate?: Date | null;
+  activityLogs?: Array<{
+    id: string;
+    taskId: string;
+    actor: { id: string; name: string; email: string };
+    fromStatus: string | null;
+    toStatus: string;
+    createdAt: Date;
+  }>;
+};
+
+export function toTaskDTO(t: PrismaTaskRow): TaskDTO {
+  return {
+    id: t.id,
+    projectId: t.projectId,
+    title: t.title,
+    description: t.description,
+    status: t.status as TaskDTO["status"],
+    priority: t.priority as TaskDTO["priority"],
+    creatorId: t.creatorId,
+    assignee: t.assignee ?? null,
+    dueDate: t.dueDate?.toISOString() ?? null,
+    activityLogs: t.activityLogs?.map((log) => ({
+      id: log.id,
+      taskId: log.taskId,
+      actor: log.actor,
+      fromStatus: log.fromStatus as TaskDTO["status"] | null,
+      toStatus: log.toStatus as TaskDTO["status"],
+      createdAt: log.createdAt.toISOString(),
+    })),
+    createdAt: t.createdAt.toISOString(),
+    updatedAt: t.updatedAt.toISOString(),
+  };
+}

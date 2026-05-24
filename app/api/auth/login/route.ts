@@ -15,6 +15,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { ok, fail } from "@/lib/api-response";
 import { loginSchema } from "@/schemas/auth.schema";
 import { login } from "@/services/auth.service";
+import { SESSION_COOKIE_OPTIONS } from "@/lib/cookie-options";
 
 export async function POST(req: NextRequest) {
   try {
@@ -28,13 +29,7 @@ export async function POST(req: NextRequest) {
       { status: 200 }
     );
 
-    response.cookies.set("session_id", sessionId, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 7 * 24 * 60 * 60, // 7 天（单位：秒）
-    });
+    response.cookies.set("session_id", sessionId, SESSION_COOKIE_OPTIONS);
 
     return response;
   } catch (error) {

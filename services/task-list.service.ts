@@ -3,6 +3,7 @@
  */
 
 import { prisma } from "@/lib/prisma";
+import { toTaskDTO } from "@/services/task-mapper";
 import type { ListTasksQuery } from "@/schemas/task.schema";
 import type { TaskDTO } from "@/types/domain";
 import type { PaginatedResponse } from "@/types/api";
@@ -60,19 +61,7 @@ export async function listTasks(
   const totalPages = Math.ceil(total / pageSize);
 
   return {
-    items: tasks.map((t) => ({
-      id: t.id,
-      projectId: t.projectId,
-      title: t.title,
-      description: t.description,
-      status: t.status,
-      priority: t.priority,
-      creatorId: t.creatorId,
-      assignee: t.assignee ?? null,
-      dueDate: t.dueDate?.toISOString() ?? null,
-      createdAt: t.createdAt.toISOString(),
-      updatedAt: t.updatedAt.toISOString(),
-    })),
+    items: tasks.map(toTaskDTO),
     meta: {
       page,
       pageSize,

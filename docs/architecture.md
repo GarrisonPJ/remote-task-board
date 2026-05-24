@@ -52,7 +52,7 @@ remote-task-board/
 │   │   │   └── [projectId]/
 │   │   │       └── page.tsx      #   Project detail: task list + create task button
 │   │   ├── tasks/
-│   │   │   ├── page.tsx          #   Task list with filters and search (URL params driven)
+│   │   │   ├── page.tsx          #   Task list shell; client content uses URL params + React Query
 │   │   │   └── [taskId]/
 │   │   │       └── page.tsx      #   Task detail: status badge, meta info, activity timeline
 │   │   └── page.tsx              #   Root redirect to /dashboard
@@ -61,7 +61,7 @@ remote-task-board/
 │   │   │   └── page.tsx          #   Login form
 │   │   └── register/
 │   │       └── page.tsx          #   Registration form
-│   ├── api/                      # Route Handlers (write operations only)
+│   ├── api/                      # Route Handlers (API reads, writes, AI parsing)
 │   │   ├── auth/
 │   │   │   ├── register/route.ts #   POST -- register user, create session, set cookie
 │   │   │   ├── login/route.ts    #   POST -- verify bcrypt, create session, set cookie
@@ -114,6 +114,8 @@ remote-task-board/
 │   ├── auth.ts                   # getUserFromSession(), requireUser() -- cookie reader helpers
 │   ├── env.ts                    # Environment variable validation
 │   ├── errors.ts                 # AppError, UnauthorizedError, ForbiddenError, NotFoundError
+│   ├── constants.ts              # Shared VALID_TRANSITIONS, STATUS_LABELS, permission helpers, type re-exports
+│   ├── cookie-options.ts         # Shared SESSION_COOKIE_OPTIONS used by register/login/logout routes
 │   ├── api-response.ts           # ok() / fail() response builders
 │   ├── logger.ts                 # Structured JSON logger (debug/info/warn/error)
 │   └── utils.ts                  # cn() utility (clsx + tailwind-merge)
@@ -122,7 +124,9 @@ remote-task-board/
 │   ├── auth.service.ts           # register(), login(), logout(), getCurrentUser()
 │   ├── workspace.service.ts      # createWorkspace, listMyWorkspaces, getWorkspaceById, members, etc.
 │   ├── project.service.ts        # CRUD + permission checks
-│   └── task.service.ts           # CRUD + status machine + data isolation + activity log
+│   ├── task.service.ts           # CRUD + status machine + data isolation + activity log
+│   ├── task-list.service.ts      # Paginated/filtered task list queries
+│   └── task-mapper.ts            # toTaskDTO() — shared Prisma→DTO mapping (used by task.service + task-list.service)
 │
 ├── schemas/                      # Zod validation schemas
 │   ├── auth.schema.ts            # RegisterInput, LoginInput
@@ -164,24 +168,25 @@ The application uses two distinct data-fetching patterns depending on whether th
 
 | Scenario | Path | Description |
 |---|---|---|
-| Read (page render) | Server Component --> Service --> Prisma --> PostgreSQL | Data is fetched server-side and rendered into HTML. Zero client-side network overhead. |
-| Write (create/update/delete) | Client Component --> `fetch()` to Route Handler --> Service --> Prisma --> PostgreSQL | Writes require a Route Handler because they need explicit cookie-to-session validation and mutation is not safe in server components. |
+| Stable page read (dashboard, workspace, project, task detail) | Server Component --> Service --> Prisma --> PostgreSQL | Data is fetched server-side and rendered into HTML. |
+| Task list read (filters/search/pagination) | Client Component --> React Query --> `GET /api/tasks` --> Service --> Prisma --> PostgreSQL | URL search params drive the interactive task list state. |
+| Write (create/update/delete/comment/AI parse) | Client Component --> `fetch()` to Route Handler --> Service --> Prisma/PostgreSQL or AI provider | Writes require a Route Handler because they need explicit cookie-to-session validation and mutation is not safe in server components. |
 | Auth check | Server Component --> `getUserFromSession()` --> `auth.service.getCurrentUser()` --> Prisma | Each protected page reads the session cookie and queries the `Session` table. |
-| Filter / Search | URL search params --> Server Component re-render | Filter state lives in the URL query string. Changing a filter triggers a navigation, which causes the Server Component to re-fetch with new params. |
+| Filter / Search | URL search params --> task list client re-query | Filter state lives in the URL query string. Changing a filter updates the URL and the React Query key. |
 
-### Read flow (page render, detailed)
+### Server Component read flow (page render, detailed)
 
 ```
 Browser                    Next.js Server
   |                            |
-  |--- GET /tasks?status=TODO  |
+  |--- GET /dashboard          |
   |                            |
   |                    1. Read "session_id" cookie
   |                    2. await getUserFromSession()
   |                       -> prisma.session.findUnique({ id: sessionId })
   |                       -> check expiresAt
   |                       -> return user or null
-  |                    3. await listTasks(query, user.id)
+  |                    3. await listTasks({ page: 1, pageSize: 5 }, user.id)
   |                       -> prisma.task.findMany({ where: { project: { workspace: { members: { some: { userId } } } } }, ... })
   |                       -> prisma.task.count({ where })
   |                    4. Render React tree (RSC payload)
@@ -259,7 +264,7 @@ Session {
 2. Route Handler parses input with `registerSchema` (zod).
 3. `auth.service.register()` checks email uniqueness -- throws `EMAIL_TAKEN` (409) if duplicate.
 4. Password is hashed with `bcrypt.hash(password, 12)`.
-5. `User` record is created. `Session` record is created with `crypto.randomUUID()` and a 7-day expiry.
+5. `User` and `Session` records are created in one Prisma transaction. The session uses `crypto.randomUUID()` and a 7-day expiry.
 6. Route Handler sets the `session_id` cookie on the response:
    ```
    Set-Cookie: session_id=<uuid>; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=604800
@@ -294,15 +299,27 @@ Session {
 
 ### Session Cleanup
 
-Expired session rows accumulate over time. A periodic cleanup job (implementable as a scheduled function or a cron-based Prisma query) deletes rows where `expiresAt < now()`. The auth service tolerates expired sessions gracefully -- they simply return `null` from `getCurrentUser`.
+Expired session rows are cleaned up opportunistically: `cleanupExpiredSessions()` runs at most once per hour (time-based throttle), deleting rows where `expiresAt < now()`. The auth service tolerates expired sessions gracefully — sessions past their expiry simply return `null` from `getCurrentUser`.
 
 ### Cookie Configuration
+
+Defined in `lib/cookie-options.ts` and shared across register, login, and logout routes:
+
+```typescript
+export const SESSION_COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "lax" as const,
+  path: "/",
+  maxAge: 7 * 24 * 60 * 60, // 7 days
+};
+```
 
 | Attribute | Value | Rationale |
 |---|---|---|
 | `httpOnly` | `true` | Prevents XSS-based session theft (JS cannot read the cookie) |
 | `secure` | `true` in production | Requires HTTPS |
-| `sameSite` | `lax` | CSRF protection -- allows GET navigations from external sites but blocks cross-origin POST |
+| `sameSite` | `lax` | CSRF protection — allows GET navigations from external sites but blocks cross-origin POST |
 | `path` | `/` | Cookie is sent on every request to the domain |
 | `maxAge` | 604800 (7 days) | Matches the `Session.expiresAt` database column |
 
@@ -322,7 +339,7 @@ Every user who belongs to a workspace has a role stored in the `WorkspaceMember`
 | MEMBER | Yes | Yes | No | Yes | Yes | No | Yes | No | Yes | No | No |
 | VIEWER | No | No | No | No | No | No | No | No | No | No | No |
 
-Key permission functions in the codebase (from `task.service.ts` and `project.service.ts`):
+Key permission functions in the codebase (from `lib/constants.ts` and shared across the service layer):
 
 ```typescript
 function canCreateTask(role: WorkspaceRole): boolean {
@@ -373,7 +390,7 @@ Tasks follow a strict state machine. Each transition must be explicitly allowed;
 
 ```
                         ┌──────────────────┐
-                        │      DONE        │  (terminal)
+                        │      DONE        │
                         └──────────────────┘
                               ▲
                               │
@@ -400,17 +417,17 @@ Tasks follow a strict state machine. Each transition must be explicitly allowed;
 | `TODO` | `IN_PROGRESS`, `CANCELED` |
 | `IN_PROGRESS` | `IN_REVIEW`, `TODO`, `CANCELED` |
 | `IN_REVIEW` | `DONE`, `IN_PROGRESS`, `CANCELED` |
-| `DONE` | *(terminal -- no outgoing transitions)* |
+| `DONE` | `IN_REVIEW` |
 | `CANCELED` | `TODO` |
 
-The transition map is implemented as a lookup table in `task.service.ts`:
+The transition map is implemented in `lib/constants.ts` and shared across the service layer and client components:
 
 ```typescript
 const VALID_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
   TODO: ["IN_PROGRESS", "CANCELED"],
   IN_PROGRESS: ["IN_REVIEW", "CANCELED", "TODO"],
   IN_REVIEW: ["DONE", "IN_PROGRESS", "CANCELED"],
-  DONE: [],        // terminal state
+  DONE: ["IN_REVIEW"],
   CANCELED: ["TODO"],
 };
 ```
@@ -431,7 +448,7 @@ The transaction guarantees atomicity: either both the status update and the acti
 
 ### Design Notes
 
-- `DONE` is a terminal state with no outgoing transitions. This reflects the decision that completing a task is final; if a task needs further work, a new task should be created.
+- `DONE` can move back to `IN_REVIEW`, allowing completed work to be reopened for review without creating a duplicate task.
 - `CANCELED` can return to `TODO`, allowing canceled tasks to be revived.
 - A task is always created with `status = TODO`.
 

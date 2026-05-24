@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { STATUS_LABELS } from "@/lib/constants";
 import type { TaskStatus } from "@/types/domain";
 
 const STATUS_CLASSES: Record<TaskStatus, string> = {
@@ -7,14 +8,6 @@ const STATUS_CLASSES: Record<TaskStatus, string> = {
   IN_REVIEW: "badge-in_review",
   DONE: "badge-done",
   CANCELED: "badge-canceled",
-};
-
-const STATUS_LABELS: Record<TaskStatus, string> = {
-  TODO: "To Do",
-  IN_PROGRESS: "In Progress",
-  IN_REVIEW: "In Review",
-  DONE: "Done",
-  CANCELED: "Canceled",
 };
 
 export function TaskStatusBadge({ status }: { status: TaskStatus }) {

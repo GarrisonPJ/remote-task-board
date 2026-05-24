@@ -1,5 +1,14 @@
-export type WorkspaceRole = "OWNER" | "MEMBER" | "VIEWER";
-export type TaskStatus = "TODO" | "IN_PROGRESS" | "IN_REVIEW" | "DONE" | "CANCELED";
+import type { WorkspaceRole, TaskStatus } from "@/types/domain";
+
+export type { WorkspaceRole, TaskStatus };
+
+export const STATUS_LABELS: Record<string, string> = {
+  TODO: "To Do",
+  IN_PROGRESS: "In Progress",
+  IN_REVIEW: "In Review",
+  DONE: "Done",
+  CANCELED: "Canceled",
+};
 
 /** Allowed state transitions for tasks. Key = current status, value = valid targets. */
 export const VALID_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
