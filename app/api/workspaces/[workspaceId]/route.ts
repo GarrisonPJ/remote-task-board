@@ -33,7 +33,7 @@ export async function GET(
     const workspace = await getWorkspaceById(workspaceId, user.id);
     return ok(workspace);
   } catch (error) {
-    return fail(error as Error);
+    return fail(error);
   }
 }
 
@@ -56,7 +56,7 @@ export async function PATCH(
     const workspace = await updateWorkspace(workspaceId, input, user.id);
     return ok(workspace);
   } catch (error) {
-    return fail(error as Error);
+    return fail(error);
   }
 }
 
@@ -78,6 +78,6 @@ export async function DELETE(
     await deleteWorkspace(workspaceId, user.id);
     return ok(null);
   } catch (error) {
-    return fail(error as Error);
+    return fail(error);
   }
 }

@@ -19,6 +19,6 @@ export async function GET() {
     const user = await requireUser();
     return ok(user);
   } catch (error) {
-    return fail(error as Error);
+    return fail(error);
   }
 }

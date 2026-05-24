@@ -14,7 +14,7 @@ export async function GET(
     const comments = await listComments(taskId, user.id);
     return ok(comments);
   } catch (error) {
-    return fail(error as Error);
+    return fail(error);
   }
 }
 
@@ -30,6 +30,6 @@ export async function POST(
     const comment = await createComment(taskId, input.content, user.id);
     return ok(comment, 201);
   } catch (error) {
-    return fail(error as Error);
+    return fail(error);
   }
 }

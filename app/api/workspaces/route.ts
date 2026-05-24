@@ -23,7 +23,7 @@ export async function GET() {
     const workspaces = await listMyWorkspaces(user.id);
     return ok(workspaces);
   } catch (error) {
-    return fail(error as Error);
+    return fail(error);
   }
 }
 
@@ -38,6 +38,6 @@ export async function POST(req: NextRequest) {
     const workspace = await createWorkspace(input, user.id);
     return ok(workspace, 201);
   } catch (error) {
-    return fail(error as Error);
+    return fail(error);
   }
 }

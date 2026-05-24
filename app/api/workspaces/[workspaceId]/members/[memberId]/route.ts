@@ -13,6 +13,6 @@ export async function DELETE(
     await removeMember(workspaceId, memberId, user.id);
     return ok(null);
   } catch (error) {
-    return fail(error as Error);
+    return fail(error);
   }
 }

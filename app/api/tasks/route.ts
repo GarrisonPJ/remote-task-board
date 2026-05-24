@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
     const result = await listTasks(query, user.id);
     return ok(result);
   } catch (error) {
-    return fail(error as Error);
+    return fail(error);
   }
 }
 
@@ -44,6 +44,6 @@ export async function POST(req: NextRequest) {
     const task = await createTask(input, user.id);
     return ok(task, 201);
   } catch (error) {
-    return fail(error as Error);
+    return fail(error);
   }
 }

@@ -12,7 +12,7 @@ export async function GET(req: NextRequest) {
     const projects = await listProjects(workspaceId, user.id);
     return ok(projects);
   } catch (error) {
-    return fail(error as Error);
+    return fail(error);
   }
 }
 
@@ -24,6 +24,6 @@ export async function POST(req: NextRequest) {
     const project = await createProject(input, user.id);
     return ok(project, 201);
   } catch (error) {
-    return fail(error as Error);
+    return fail(error);
   }
 }

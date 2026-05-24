@@ -14,7 +14,7 @@ export async function GET(
     const members = await listMembers(workspaceId, user.id);
     return ok(members);
   } catch (error) {
-    return fail(error as Error);
+    return fail(error);
   }
 }
 
@@ -30,6 +30,6 @@ export async function POST(
     await addMember(workspaceId, input, user.id);
     return ok(null, 201);
   } catch (error) {
-    return fail(error as Error);
+    return fail(error);
   }
 }

@@ -33,6 +33,6 @@ export async function POST(req: NextRequest) {
 
     return response;
   } catch (error) {
-    return fail(error as Error);
+    return fail(error);
   }
 }

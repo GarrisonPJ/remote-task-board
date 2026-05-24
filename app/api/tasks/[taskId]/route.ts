@@ -26,7 +26,7 @@ export async function GET(
     const { task } = await getTaskById(taskId, user.id);
     return ok(task);
   } catch (error) {
-    return fail(error as Error);
+    return fail(error);
   }
 }
 
@@ -51,7 +51,7 @@ export async function PATCH(
     const task = await updateTask(taskId, input, user.id);
     return ok(task);
   } catch (error) {
-    return fail(error as Error);
+    return fail(error);
   }
 }
 
@@ -71,6 +71,6 @@ export async function DELETE(
     await deleteTask(taskId, user.id);
     return ok(null);
   } catch (error) {
-    return fail(error as Error);
+    return fail(error);
   }
 }

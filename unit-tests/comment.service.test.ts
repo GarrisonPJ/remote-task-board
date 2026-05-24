@@ -1,16 +1,10 @@
 import { describe, it, expect } from "vitest";
+import { canCreateComment } from "@/lib/constants";
 
 /**
  * Unit tests for comment permission helpers.
  * These test the role-based access rules independent of the database.
- *
- * We extract the two key permissions as pure functions so they're testable
- * without a DB — same pattern as canCreateTask / canDeleteTask in task.service.ts.
  */
-
-function canCreateComment(role: string): boolean {
-  return role === "OWNER" || role === "MEMBER";
-}
 
 describe("canCreateComment", () => {
   it("OWNER can create comments", () => {

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { ZodError, type ZodIssue } from "zod";
+import { ZodError } from "zod";
 import { AppError } from "./errors";
 
 export function ok<T>(data: T, status = 200) {
@@ -28,7 +28,7 @@ export function fail(error: unknown) {
         error: {
           code: "VALIDATION_ERROR",
           message: "Input validation failed.",
-          details: error.issues.map((e: ZodIssue) => ({
+          details: error.issues.map((e) => ({
             field: e.path.join("."),
             message: e.message,
           })),

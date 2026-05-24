@@ -42,6 +42,10 @@ export function canDeleteTask(role: WorkspaceRole, creatorId: string, actorId: s
   return false;
 }
 
+export function canCreateComment(role: WorkspaceRole): boolean {
+  return role === "OWNER" || role === "MEMBER";
+}
+
 /**
  * OWNER can always update status; MEMBER can only update if they are the assignee.
  */

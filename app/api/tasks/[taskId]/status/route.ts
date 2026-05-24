@@ -28,6 +28,6 @@ export async function PATCH(
     const task = await updateTaskStatus(taskId, input, user.id);
     return ok(task);
   } catch (error) {
-    return fail(error as Error);
+    return fail(error);
   }
 }

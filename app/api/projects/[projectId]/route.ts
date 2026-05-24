@@ -18,7 +18,7 @@ export async function GET(
     const project = await getProjectById(projectId, user.id);
     return ok(project);
   } catch (error) {
-    return fail(error as Error);
+    return fail(error);
   }
 }
 
@@ -34,7 +34,7 @@ export async function PATCH(
     const project = await updateProject(projectId, input, user.id);
     return ok(project);
   } catch (error) {
-    return fail(error as Error);
+    return fail(error);
   }
 }
 
@@ -48,6 +48,6 @@ export async function DELETE(
     await deleteProject(projectId, user.id);
     return ok(null);
   } catch (error) {
-    return fail(error as Error);
+    return fail(error);
   }
 }

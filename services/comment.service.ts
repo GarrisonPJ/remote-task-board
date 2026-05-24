@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { ForbiddenError, NotFoundError } from "@/lib/errors";
+import { canCreateComment } from "@/lib/constants";
 import type { CommentDTO } from "@/types/domain";
 
 /**
@@ -85,7 +86,7 @@ export async function createComment(
   if (!member) throw new NotFoundError("Task");
 
   // VIEWER cannot create comments
-  if (member.role === "VIEWER") {
+  if (!canCreateComment(member.role)) {
     throw new ForbiddenError();
   }
 
