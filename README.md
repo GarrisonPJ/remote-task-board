@@ -1,110 +1,151 @@
 # Remote Task Board
 
-A lightweight task management platform for remote teams.
+A full-stack task management platform for remote teams — built as a demonstration of modern TypeScript full-stack engineering.
 
-Built with Next.js, TypeScript, PostgreSQL, and Prisma.
+> **Current status:** Development complete. E2E tested (Playwright), CI pipeline active (GitHub Actions + PostgreSQL service container). Documentation covers architecture, design decisions, and API surface.
+
+---
 
 ## Tech Stack
 
-| Layer | Technology |
-|---|---|
-| Framework | Next.js (App Router) |
-| Language | TypeScript (strict) |
-| Database | PostgreSQL (Supabase) |
-| ORM | Prisma |
-| Auth | Custom Session (bcrypt + httpOnly cookie, stored in DB) |
-| UI | Tailwind CSS + shadcn/ui |
-| Validation | zod |
-| Testing | Playwright |
-| CI | GitHub Actions |
-| Deploy | Vercel + Supabase |
+| Layer | Choice | Why |
+|---|---|---|
+| Framework | **Next.js 16** (App Router) | Server Components for stable page reads; Route Handlers for mutations with auth. No SPA-only tradeoffs. |
+| Language | **TypeScript 5** (strict) | Full strict mode. No `any`, no `as` casts in business logic. |
+| Database | **PostgreSQL 16** | Real relational DB. Enforced referential integrity, cascade deletes, composite unique constraints for permission joins. |
+| ORM | **Prisma 7** | Type-safe queries with PrismaPg adapter. Join-chain filtering for data isolation (see Architecture). |
+| Auth | **Custom session** (bcryptjs + httpOnly cookie) | Session table in PostgreSQL. `SameSite=Lax`, `HttpOnly`, secure in production. No JWT, no Auth0 dependency — you own the auth layer. |
+| UI | **Tailwind CSS v4** + **shadcn/ui** + **@base-ui/react** | Design tokens via CSS variables. Full dark mode. Teal productivity palette. `prefers-reduced-motion` respected. |
+| State (client) | **TanStack React Query v5** | Task list with URL-driven filters/pagination. Cache invalidation on mutations. |
+| Validation | **Zod v4** | Server-side input validation in every Route Handler. Shared schemas with TypeScript type inference. |
+| E2E | **Playwright** | 50 test cases across 5 spec files: core flow, permissions, data isolation, state machine, API security. |
+| CI | **GitHub Actions** | Postgres service container → migrate → seed → typecheck → build → Playwright. Every PR. |
+| AI | **OpenAI SDK / DeepSeek** | Optional natural-language task creation. Hidden unless `DEEPSEEK_API_KEY` is configured. No hard dependency. |
 
-## Features
+---
 
-- ✅ **Authentication** — Register, login, logout (custom session-based auth with bcrypt hashing)
-- ✅ **Workspace management** — Create and manage workspaces with members
-- ✅ **Project management** — Group tasks within projects under a workspace
-- ✅ **Task CRUD** — Full create, read, update, delete for tasks
-- ✅ **Task status workflow** — State machine with defined transitions, including review/reopen and cancel/reopen paths
-- ✅ **Search, filtering & pagination** — Filter by status/priority/assignee, search by title, paginated results
-- ✅ **Role-based access control** — OWNER / MEMBER / VIEWER roles with per-operation permissions
-- ✅ **Assignee permissions** — Task assignees have special privileges for status changes
-- ✅ **Activity log** — Track status change history per task (in Prisma transaction)
-- ✅ **Data isolation** — Workspace-scoped data: users can only access their own workspaces via join-chain validation
-- ✅ **Comments** — Task comments for OWNER/MEMBER users, read-only for VIEWER users
-- ✅ **Optional AI task creation** — DeepSeek-backed natural language task parsing when `DEEPSEEK_API_KEY` is configured
-- 📋 **Invite links** — Email-based workspace invitations
-- 📋 **Email notifications** — Task assignment and status change alerts
-- 📋 **Drag-and-drop kanban board** — Visual task management
-- 📋 **Full audit log** — Complete change history tracking
+## Architecture Highlights
 
-## Data Flow
+These are the design decisions that made the project worth building deliberately — not just another CRUD app.
 
-| Scenario | Data Source |
-|---|---|
-| Page initial render (dashboard, workspace, project, task detail) | Server Component → Service (direct Prisma call) |
-| Task list filter, pagination, search | URL search params → Client Component → React Query → `GET /api/tasks` |
-| Mutations (create, update, delete, comments, AI parsing) | Client Component → Route Handler → Service |
-| Auth check / current user | Server Component calls auth lib directly |
+### 1. State Machine with Transaction Atomicity
 
-Stable page reads go through Server Components. The task list uses a client-side API read because its filters, search, and pagination are URL-driven interactive state. Writes and AI parsing go through Route Handlers with zod validation and permission checks.
-
-## Architecture
+Task status transitions follow a strict state machine. Invalid transitions are rejected server-side.
 
 ```
-Remote Task Board
-├── app/                   # Next.js App Router pages & API
-│   ├── (app)/             # Authenticated pages (shared layout with sidebar)
-│   │   ├── dashboard/     # Main workspace dashboard
-│   │   ├── workspaces/    # Workspace detail pages
-│   │   ├── projects/      # Project detail pages
-│   │   └── tasks/         # Task detail & list pages
-│   ├── (auth)/            # Login, register (no sidebar layout)
-│   └── api/               # Route Handlers (API reads, mutations, AI parsing)
-│
-├── components/            # UI components by domain
-│   ├── ui/                # Base components (shadcn/ui)
-│   ├── layout/            # AppShell, Sidebar, Header
-│   ├── workspace/         # Workspace-related components
-│   ├── project/           # Project-related components
-│   └── task/              # Task-related components
-│
-├── lib/                   # Infrastructure (prisma, auth, env, logger, errors)
-├── services/              # Business logic (direct Prisma calls)
-├── schemas/               # zod input validation
-├── types/                 # Shared type definitions
-├── prisma/                # Schema & seed data
-└── tests/                 # Playwright E2E tests
+TODO → IN_PROGRESS → IN_REVIEW → DONE
+  ↑         ↑            ↑
+  └─────────┴────────────┴── CANCELED → TODO (revive path)
 ```
 
-## Database Schema
+Every status change is wrapped in a Prisma `$transaction` — the task updates and the activity log entry commit or roll back together. No orphaned history.
 
-Key entities: User, Session, Workspace, WorkspaceMember, Project, Task, ActivityLog.
+The transition map lives in `lib/constants.ts` and is shared between the service layer and the client component, so UI buttons always reflect valid targets:
 
-- Permissions are determined through the WorkspaceMember join table — no denormalized ownerId on Workspace
-- Task has `creatorId` and `assigneeId` — creator determines delete permission, assignee determines status change permission
-- ActivityLog uses explicit `fromStatus` / `toStatus` fields for status change tracking
-- Session table stores sessions server-side for proper logout enforcement
+```
+TODO     → [IN_PROGRESS, CANCELED]
+DONE     → [IN_REVIEW]
+CANCELED → [TODO]
+```
+
+### 2. Data Isolation via Join Chains
+
+Users can only access data in workspaces they belong to. This is enforced at the Prisma query level, not in application middleware:
+
+```
+Task → Project → Workspace → WorkspaceMember (where userId = actorId)
+```
+
+Every task query includes a filtered relation chain. If the user has no `WorkspaceMember` row for the owning workspace, the query returns empty — no data leaks, no "access denied" hints that reveal resource existence.
+
+### 3. Role-Based Access Control (RBAC) with Task-Level Exceptions
+
+| Role | Create | Edit | Delete | Status Change |
+|---|---|---|---|---|
+| OWNER | Yes | Yes | Yes (any) | Yes (any) |
+| MEMBER | Yes | Yes | Own tasks only | Only assigned tasks |
+| VIEWER | No | No | No | No |
+
+MEMBERs can change status **only on tasks they are assigned to**. OWNERs bypass this check. The permission functions in `lib/constants.ts` are used by both the service layer and client UI for consistent guard rendering.
+
+### 4. Custom Session Auth (No Auth0, No NextAuth)
+
+- Passwords hashed with bcrypt (12 rounds).
+- Session table in PostgreSQL — logout is immediate (DELETE FROM Session).
+- Cookie: `HttpOnly`, `SameSite=Lax`, `Secure` in production, 7-day expiry.
+- Expired sessions cleaned up hourly via time-based throttle.
+- No JWTs, no third-party auth services. Full ownership of the auth layer.
+
+### 5. Two Data-Fetching Patterns
+
+| Scenario | Pattern | Rationale |
+|---|---|---|
+| Page renders (dashboard, workspace, project, task detail) | Server Component → Service → Prisma | No extra network hops. Data is part of the RSC payload. |
+| Task list (filters, search, pagination) | Client Component → React Query → `GET /api/tasks` | URL-driven interactive state. Filters live in query params. Mutations invalidate the query cache. |
+
+---
+
+## Testing Strategy
+
+| File | Tests | What it covers |
+|---|---|---|
+| `core-flow.spec.ts` | 11 | Register → login → create workspace/project/task → status change. Also validates empty title rejection. |
+| `task-status.spec.ts` | 9 | Every valid transition; invalid transitions (e.g. DONE → TODO) return 400. |
+| `permission.spec.ts` | 13 | MEMBER cannot delete others' tasks; VIEWER cannot create tasks. Role enforcement. |
+| `isolation.spec.ts` | 4 | User A cannot see User B's workspace data, even with a known UUID. |
+| `api-security.spec.ts` | 13 | Unauthenticated requests return 401. Invalid input returns 422. CSRF cookie attributes checked. |
+
+All tests run against a real PostgreSQL instance via Playwright's `webServer` config and a CI Postgres service container.
+
+```bash
+pnpm test:e2e
+```
+
+---
+
+## Project Structure
+
+```
+remote-task-board/
+├── app/
+│   ├── (app)/              # Authenticated pages (sidebar layout)
+│   │   ├── dashboard/
+│   │   ├── workspaces/[id]/
+│   │   ├── projects/[id]/
+│   │   └── tasks/
+│   ├── (auth)/             # Login, register (no sidebar)
+│   └── api/                # Route Handlers with auth + validation
+├── components/
+│   ├── ui/                 # shadcn/ui primitives
+│   ├── layout/             # AppShell, Sidebar, Header
+│   ├── workspace/          # WorkspaceCard, MemberList, CreateDialog
+│   ├── project/            # ProjectCard, CreateDialog
+│   ├── task/               # TaskList, TaskForm, TaskFilters, TaskStatusControl, etc.
+│   └── comment/            # CommentList, CommentForm
+├── lib/                    # Infrastructure: prisma, auth, env, constants, errors, logger
+├── services/               # Business logic: auth, workspace, project, task, comment
+├── schemas/                # Zod input validation schemas
+├── types/                  # Domain types (DTOs) + API response types
+├── prisma/                 # Schema, migrations, seed
+└── tests/                  # Playwright E2E specs
+```
+
+---
 
 ## Getting Started
 
 ### Prerequisites
 
-- Node.js 20+
-- pnpm
+- Node.js 20+, pnpm 9
 - Docker (for local PostgreSQL)
 
 ### Setup
 
 ```bash
-# 1. Clone the repository
-git clone https://github.com/your-username/remote-task-board.git
-cd remote-task-board
-
-# 2. Install dependencies
+# 1. Install dependencies
 pnpm install
 
-# 3. Start local PostgreSQL
+# 2. Start local PostgreSQL
 docker run -d \
   --name rtb-postgres \
   -e POSTGRES_USER=postgres \
@@ -113,71 +154,54 @@ docker run -d \
   -p 5432:5432 \
   postgres:16
 
-# 4. Copy environment variables
+# 3. Copy environment variables
 cp .env.example .env
 # Optional: set DEEPSEEK_API_KEY to enable AI task creation
 
-# 5. Generate Prisma client and run migrations
+# 4. Generate Prisma client, run migrations, seed demo data
 pnpm prisma:generate
 pnpm prisma:migrate
-
-# 6. Seed demo data
 pnpm db:seed
 
-# 7. Start the dev server
+# 5. Start dev server
 pnpm dev
 ```
 
-### Demo Accounts (after seeding)
+### Demo Accounts
 
 | Email | Password | Role |
 |---|---|---|
 | alice@test.com | password123 | OWNER |
 | bob@test.com | password123 | MEMBER |
 
-## Running Tests
+---
 
-```bash
-pnpm test:e2e          # Headless E2E tests
-pnpm test:e2e:ui       # Playwright UI mode
-```
+## Design Decisions
 
-Playwright is configured to auto-start the Next.js app via `webServer` in the config.
-In CI, the app is started explicitly before running tests.
+Key architectural choices and their rationale are documented in:
 
-Test coverage:
+- [`docs/architecture.md`](docs/architecture.md) — Data flow diagrams, auth flow, permission model, state machine, data isolation pattern
+- [`docs/design-decisions.md`](docs/design-decisions.md) — Design system (Teal palette, typography), component enhancement backlog, CSS variable strategy
+- [`docs/api.md`](docs/api.md) — API endpoint reference
 
-| Test | What it covers |
-|---|---|
-| core-flow | Register → login → create workspace/project/task → status change. Also validates empty title rejection |
-| permission | MEMBER cannot delete others' tasks; VIEWER cannot create tasks |
-| isolation | User A cannot see User B's workspace data |
-| task-status | Valid status transitions; invalid transitions (e.g. DONE → TODO) are rejected |
+---
 
-## CI
+## What This Project Demonstrates
 
-GitHub Actions runs on every PR: `typecheck → build → seed DB → start app → Playwright E2E tests`
+- **Full-stack TypeScript:** Server Components, Route Handlers, shared types between frontend and backend
+- **Database modeling:** 7 tables, 3 enums, composite unique keys, cascade deletes, relation filtering
+- **Authentication & security:** Custom session auth, bcrypt, CSRF protection via SameSite cookies, input validation on every endpoint
+- **Testing discipline:** 50 E2E tests covering happy paths, edge cases, permission boundaries, and isolation guarantees
+- **CI/CD:** Automated typecheck → build → test pipeline with real PostgreSQL
+- **Clean architecture:** Service layer separated from route handlers, shared constants, mapper functions to decouple Prisma from DTOs
 
-The CI workflow starts a PostgreSQL service container, runs migrations and seed, then starts the Next.js app in background before running tests.
+---
 
-## Deployment
+## Scope Boundaries
 
-- **App:** Vercel (auto-deploy from `main`)
-- **Database:** Supabase PostgreSQL
-
-## Known Limitations
-
-- Activity log only tracks status changes, not full audit trail
-- Permission model covers OWNER/MEMBER/VIEWER + assignee — suitable for small teams but not enterprise org hierarchies
+- Activity log tracks status changes only — not a full audit trail
 - No real-time collaboration or WebSocket presence
 - Comments support create/list only; no edit, delete, or threaded replies
-- AI task creation is hidden unless `DEEPSEEK_API_KEY` is configured
+- Designed for small teams (5-50 members), not enterprise org hierarchies
 
-## Future Improvements
-
-- Invite links
-- Email notifications
-- Drag-and-drop kanban board
-- Full audit log
-- Comment edit/delete and mention notifications
-- Web3 wallet login (bonus module)
+These are explicit scope decisions, not shortcomings. Each would be a meaningful addition in a production context.
