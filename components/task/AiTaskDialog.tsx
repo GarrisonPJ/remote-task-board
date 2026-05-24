@@ -32,6 +32,10 @@ type ParsedResult = {
   dueDate?: string | null;
 };
 
+function toDateInputValue(value: string | null | undefined): string | null {
+  return value ? value.slice(0, 10) : null;
+}
+
 export function AiTaskDialog({ projectId }: Props) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -56,7 +60,10 @@ export function AiTaskDialog({ projectId }: Props) {
         toast.error(json.error?.message ?? "Failed to parse");
         return;
       }
-      setResult(json.data);
+      setResult({
+        ...json.data,
+        dueDate: toDateInputValue(json.data.dueDate),
+      });
     } catch {
       toast.error("AI parsing failed. Use manual form instead.");
     } finally {
@@ -210,7 +217,7 @@ export function AiTaskDialog({ projectId }: Props) {
                 <div>
                   <label className="text-sm font-medium">Priority</label>
                   <Select value={result.priority} onValueChange={(v) => updateField("priority", v ?? "MEDIUM")}>
-                    <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                    <SelectTrigger className="mt-1 min-w-[130px]"><SelectValue /></SelectTrigger>
                     <SelectContent>
                       <SelectItem value="LOW">Low</SelectItem>
                       <SelectItem value="MEDIUM">Medium</SelectItem>
@@ -225,7 +232,7 @@ export function AiTaskDialog({ projectId }: Props) {
                     type="date"
                     value={result.dueDate ?? ""}
                     onChange={(e) => updateField("dueDate", e.target.value)}
-                    className="mt-1"
+                    className="mt-1 accent-primary [color-scheme:light]"
                   />
                 </div>
               </div>

@@ -1,5 +1,6 @@
 import OpenAI from "openai";
 import { env } from "./env";
+import { AppError } from "./errors";
 
 const SYSTEM_PROMPT = `You are a task parser. Extract structured task fields from natural language descriptions.
 Return ONLY valid JSON, no other text.
@@ -29,7 +30,11 @@ export async function parseTask(text: string): Promise<{
   dueDate?: string | null;
 }> {
   if (!env.DEEPSEEK_API_KEY) {
-    throw new Error("DEEPSEEK_API_KEY is not configured");
+    throw new AppError(
+      "AI_NOT_CONFIGURED",
+      "AI task creation is not configured.",
+      503
+    );
   }
 
   const client = new OpenAI({
@@ -49,7 +54,13 @@ export async function parseTask(text: string): Promise<{
   });
 
   const content = response.choices[0]?.message?.content;
-  if (!content) throw new Error("Empty response from AI");
+  if (!content) {
+    throw new AppError("AI_PARSE_FAILED", "AI returned an empty response.", 502);
+  }
 
-  return JSON.parse(content);
+  try {
+    return JSON.parse(content);
+  } catch {
+    throw new AppError("AI_PARSE_FAILED", "AI returned invalid JSON.", 502);
+  }
 }

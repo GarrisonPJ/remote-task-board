@@ -111,13 +111,14 @@ export function MemberList({ workspaceId, currentUserRole }: Props) {
   return (
     <div className="space-y-4">
       {isOwner && (
-        <form onSubmit={handleAddMember} className="flex items-end gap-2">
-          <div className="flex-1">
+        <form onSubmit={handleAddMember} className="flex flex-wrap items-end gap-2">
+          <div className="flex-1 min-w-[200px]">
             <Input
               placeholder="Email address"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
+              className="h-9"
               required
             />
           </div>
@@ -125,7 +126,7 @@ export function MemberList({ workspaceId, currentUserRole }: Props) {
             value={role}
             onValueChange={(v) => v && setRole(v as WorkspaceRole)}
           >
-            <SelectTrigger className="w-[130px]">
+            <SelectTrigger className="w-[130px] h-9">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -133,7 +134,7 @@ export function MemberList({ workspaceId, currentUserRole }: Props) {
               <SelectItem value="VIEWER">Viewer</SelectItem>
             </SelectContent>
           </Select>
-          <Button type="submit" disabled={isSubmitting}>
+          <Button type="submit" className="h-9" disabled={isSubmitting}>
             {isSubmitting ? "Adding..." : "Add"}
           </Button>
         </form>

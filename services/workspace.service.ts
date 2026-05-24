@@ -27,16 +27,20 @@ export async function createWorkspace(
   input: CreateWorkspaceInput,
   actorId: string
 ): Promise<WorkspaceDTO> {
-  const workspace = await prisma.workspace.create({
-    data: { name: input.name },
-  });
+  const workspace = await prisma.$transaction(async (tx) => {
+    const created = await tx.workspace.create({
+      data: { name: input.name },
+    });
 
-  await prisma.workspaceMember.create({
-    data: {
-      workspaceId: workspace.id,
-      userId: actorId,
-      role: "OWNER",
-    },
+    await tx.workspaceMember.create({
+      data: {
+        workspaceId: created.id,
+        userId: actorId,
+        role: "OWNER",
+      },
+    });
+
+    return created;
   });
 
   return {

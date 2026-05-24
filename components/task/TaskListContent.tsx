@@ -1,5 +1,6 @@
 "use client";
 
+import { Fragment } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "next/navigation";
 import { TaskTable } from "./TaskTable";
@@ -107,7 +108,7 @@ export function TaskListContent() {
                 {Array.from({ length: data.meta.totalPages }, (_, i) => i + 1)
                   .filter((p) => Math.abs(p - currentPage) <= 2 || p === 1 || p === data.meta.totalPages)
                   .map((p, idx, arr) => (
-                    <span key={p}>
+                    <Fragment key={p}>
                       {idx > 0 && arr[idx - 1] !== p - 1 && (
                         <PaginationItem>
                           <PaginationEllipsis />
@@ -121,7 +122,7 @@ export function TaskListContent() {
                           {p}
                         </PaginationLink>
                       </PaginationItem>
-                    </span>
+                    </Fragment>
                   ))}
                 {currentPage < data.meta.totalPages && (
                   <PaginationItem>

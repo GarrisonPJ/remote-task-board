@@ -11,7 +11,10 @@ export async function POST(req: NextRequest) {
     const input = parseTaskSchema.parse(body);
     const result = await parseTask(input.text);
     const validated = taskParseResultSchema.parse(result);
-    return ok(validated);
+    return ok({
+      ...validated,
+      dueDate: validated.dueDate ? validated.dueDate.slice(0, 10) : validated.dueDate,
+    });
   } catch (error) {
     return fail(error as Error);
   }

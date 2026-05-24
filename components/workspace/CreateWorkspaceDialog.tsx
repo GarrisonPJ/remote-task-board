@@ -54,7 +54,7 @@ export function CreateWorkspaceDialog({ variant = "sidebar" }: { variant?: "side
       <DialogTrigger
         render={
           <button className={variant === "sidebar"
-            ? "flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-150 active:scale-95"
+            ? "flex items-center gap-3 w-full py-2 rounded-lg text-sm text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground transition-all duration-150 active:scale-95"
             : "inline-flex items-center justify-center rounded-lg border bg-primary text-primary-foreground text-sm font-medium h-9 px-4 gap-2 hover:bg-primary/80 transition-all duration-150 active:scale-95 cursor-pointer"}
           />
         }

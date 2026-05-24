@@ -26,7 +26,7 @@ export default async function TaskDetailPage({
   const workspaceId = project.workspaceId;
 
   return (
-    <div className="space-y-6 md:space-y-8 max-w-2xl animate-slide-up stagger-1">
+    <div className="space-y-6 md:space-y-8 animate-slide-up stagger-1">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-sm text-muted-foreground">
         <Link href="/dashboard" className="hover:text-foreground transition-colors">Dashboard</Link>
@@ -56,7 +56,8 @@ export default async function TaskDetailPage({
       </div>
 
       {/* Status control */}
-      <div className="rounded-xl border bg-card p-4 animate-slide-up stagger-2">
+      <section className="rounded-xl border bg-card p-5 space-y-3 animate-slide-up stagger-2 shadow-sm">
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Status</h2>
         <TaskStatusControl
           taskId={task.id}
           currentStatus={task.status}
@@ -64,11 +65,11 @@ export default async function TaskDetailPage({
           assigneeId={task.assignee?.id ?? null}
           userRole={userRole}
         />
-      </div>
+      </section>
 
       {/* Description */}
       {task.description && (
-        <section className="rounded-xl border bg-card p-5 space-y-3 animate-slide-up stagger-2">
+        <section className="rounded-xl border bg-card p-5 space-y-3 animate-slide-up stagger-2 shadow-sm">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Description</h2>
           <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">
             {task.description}
@@ -77,7 +78,7 @@ export default async function TaskDetailPage({
       )}
 
       {/* Metadata grid */}
-      <section className="rounded-xl border bg-card p-5 space-y-3 animate-slide-up stagger-3">
+      <section className="rounded-xl border bg-card p-5 space-y-3 animate-slide-up stagger-3 shadow-sm">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Details</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
           {task.assignee && (
@@ -105,17 +106,17 @@ export default async function TaskDetailPage({
 
       {/* Activity timeline */}
       {task.activityLogs && (
-        <section className="rounded-xl border bg-card p-5 space-y-3 animate-slide-up stagger-4">
+        <section className="rounded-xl border bg-card p-5 space-y-3 animate-slide-up stagger-4 shadow-sm">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Activity</h2>
           <TaskActivityTimeline logs={task.activityLogs} />
         </section>
       )}
 
       {/* Comments */}
-      <section className="rounded-xl border bg-card p-5 space-y-3 animate-slide-up stagger-5">
+      <section className="rounded-xl border bg-card p-5 space-y-3 animate-slide-up stagger-5 shadow-sm">
         <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Comments</h2>
         <div className="space-y-4">
-          <CommentForm taskId={task.id} />
+          {userRole !== "VIEWER" && <CommentForm taskId={task.id} />}
           <CommentList taskId={task.id} />
         </div>
       </section>

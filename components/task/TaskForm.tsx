@@ -12,8 +12,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { CreateTaskInput } from "@/schemas/task.schema";
 import type { TaskDTO, TaskPriority } from "@/types/domain";
+
+const UNASSIGNED_VALUE = "__UNASSIGNED__";
 
 type TaskFormProps = {
   projectId: string;
@@ -23,6 +24,14 @@ type TaskFormProps = {
 };
 
 type MemberOption = { id: string; name: string; email: string };
+type TaskFormPayload = {
+  projectId: string;
+  title: string;
+  description?: string | null;
+  priority: TaskPriority;
+  assigneeId?: string | null;
+  dueDate?: string | null;
+};
 
 export function TaskForm({ projectId, task, workspaceId, onSuccessAction }: TaskFormProps) {
   const router = useRouter();
@@ -50,13 +59,13 @@ export function TaskForm({ projectId, task, workspaceId, onSuccessAction }: Task
     setIsSubmitting(true);
 
     try {
-      const input: CreateTaskInput = {
+      const input: TaskFormPayload = {
         projectId,
         title,
-        description: description || undefined,
+        description: description || (isEdit ? null : undefined),
         priority,
-        assigneeId: assigneeId || undefined,
-        dueDate: dueDate || undefined,
+        assigneeId: assigneeId || (isEdit ? null : undefined),
+        dueDate: dueDate || (isEdit ? null : undefined),
       };
 
       const url = isEdit ? `/api/tasks/${task.id}` : "/api/tasks";
@@ -82,6 +91,8 @@ export function TaskForm({ projectId, task, workspaceId, onSuccessAction }: Task
         setTitle("");
         setDescription("");
         setPriority("MEDIUM");
+        setAssigneeId("");
+        setDueDate("");
       }
 
       onSuccessAction?.();
@@ -117,7 +128,7 @@ export function TaskForm({ projectId, task, workspaceId, onSuccessAction }: Task
       <div>
         <label className="text-sm font-medium">Priority</label>
         <Select value={priority} onValueChange={(v) => setPriority(v as TaskPriority)}>
-          <SelectTrigger>
+          <SelectTrigger className="min-w-[130px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -132,12 +143,15 @@ export function TaskForm({ projectId, task, workspaceId, onSuccessAction }: Task
       {members.length > 0 && (
         <div>
           <label className="text-sm font-medium">Assignee</label>
-          <Select value={assigneeId} onValueChange={(v) => setAssigneeId(v ?? "")}>
-            <SelectTrigger>
+          <Select
+            value={assigneeId || UNASSIGNED_VALUE}
+            onValueChange={(v) => setAssigneeId(v === UNASSIGNED_VALUE ? "" : v ?? "")}
+          >
+            <SelectTrigger className="min-w-[140px]">
               <SelectValue placeholder="Unassigned" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Unassigned</SelectItem>
+              <SelectItem value={UNASSIGNED_VALUE}>Unassigned</SelectItem>
               {members.map((m) => (
                 <SelectItem key={m.id} value={m.id}>{m.name}</SelectItem>
               ))}
@@ -152,6 +166,7 @@ export function TaskForm({ projectId, task, workspaceId, onSuccessAction }: Task
           type="date"
           value={dueDate}
           onChange={(e) => setDueDate(e.target.value)}
+          className="accent-primary [color-scheme:light]"
         />
       </div>
 

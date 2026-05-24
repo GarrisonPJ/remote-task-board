@@ -17,17 +17,19 @@ export default async function AppLayout({
 
   return (
     <div className="flex h-screen">
-      <aside className="hidden md:flex w-64 border-r bg-sidebar flex flex-col">
-        <div className="flex items-center gap-3 px-4 h-14 border-b">
+      <aside className="hidden md:flex w-64 border-r bg-sidebar flex-col">
+        <div className="flex items-center gap-3 px-4 md:px-6 h-14 border-b">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary shadow-xs">
             <Layers className="h-4 w-4 text-primary-foreground" />
           </div>
           <span className="font-semibold">Remote Task Board</span>
         </div>
         <SidebarNav />
-        <CreateWorkspaceDialog />
-        <div className="border-t p-3 space-y-3">
-          <div className="flex items-center gap-3 px-3">
+        <div className="px-4 md:px-6 py-1">
+          <CreateWorkspaceDialog />
+        </div>
+        <div className="border-t p-3 px-4 md:px-6 space-y-3">
+          <div className="flex items-center gap-3">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary text-xs font-semibold">
               {user.name.charAt(0).toUpperCase()}
             </div>
@@ -41,7 +43,7 @@ export default async function AppLayout({
       </aside>
 
       <div className="flex flex-1 flex-col overflow-hidden">
-        <header className="flex items-center justify-between border-b bg-background/95 backdrop-blur-sm px-4 md:px-6 py-3 sticky top-0 z-30">
+        <header className="flex items-center justify-between border-b bg-background/95 backdrop-blur-sm px-4 md:px-6 h-14 sticky top-0 z-30">
           <div className="flex items-center gap-3">
             <MobileNav userName={user.name} />
             <h1 className="text-lg font-semibold">Remote Task Board</h1>

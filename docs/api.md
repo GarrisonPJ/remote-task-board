@@ -32,11 +32,14 @@ All endpoints use a unified response envelope:
 |--------|-------------------------|------------------------------------------------------|
 | 400    | `VALIDATION_ERROR`      | Request body or query failed zod validation.         |
 | 400    | `INVALID_TRANSITION`    | Task status transition is not allowed by state machine. |
+| 400    | `INVALID_ASSIGNEE`      | Task assignee is not a member of the owning workspace. |
 | 400    | `LAST_OWNER`            | Cannot remove the last OWNER from a workspace.       |
 | 401    | `UNAUTHORIZED`          | No valid session cookie (not logged in).             |
 | 403    | `FORBIDDEN`             | Authenticated but insufficient role/permission.      |
 | 404    | `NOT_FOUND`             | Requested resource does not exist.                   |
 | 409    | `EMAIL_TAKEN`           | Email already registered (register only).            |
+| 502    | `AI_PARSE_FAILED`       | AI provider returned an empty or invalid parse result. |
+| 503    | `AI_NOT_CONFIGURED`     | AI task creation is unavailable because `DEEPSEEK_API_KEY` is not configured. |
 | 500    | `INTERNAL_SERVER_ERROR` | Unexpected server error.                             |
 
 ### Authentication
@@ -652,7 +655,7 @@ List tasks with optional filtering, search, and pagination.
 {
   "success": true,
   "data": {
-    "tasks": [
+    "items": [
       {
         "id": "task1abcdef123",
         "projectId": "proj1abcdef123",
@@ -671,10 +674,12 @@ List tasks with optional filtering, search, and pagination.
         "updatedAt": "2025-01-23T15:00:00.000Z"
       }
     ],
-    "total": 1,
-    "page": 1,
-    "pageSize": 20,
-    "totalPages": 1
+    "meta": {
+      "page": 1,
+      "pageSize": 20,
+      "total": 1,
+      "totalPages": 1
+    }
   }
 }
 ```
@@ -697,12 +702,12 @@ Create a new task.
   "title": "Fix login bug",
   "description": "Users cannot log in with special characters in password",
   "priority": "HIGH",
-  "assigneeEmail": "bob@example.com",
-  "dueDate": "2025-02-01T00:00:00.000Z"
+  "assigneeId": "cm7xyz789",
+  "dueDate": "2025-02-01"
 }
 ```
 
-Only `projectId` and `title` are required; all other fields are optional.
+Only `projectId` and `title` are required; all other fields are optional. `dueDate` accepts either `YYYY-MM-DD` from date inputs or a full ISO datetime. Responses always return ISO datetime strings.
 
 **Success Response** `201 Created`:
 
@@ -807,12 +812,12 @@ Update task fields. Only provided fields are changed.
   "title": "Updated title",
   "description": "Updated description",
   "priority": "MEDIUM",
-  "assigneeEmail": "alice@example.com",
-  "dueDate": "2025-02-15T00:00:00.000Z"
+  "assigneeId": "cm7abcdef123",
+  "dueDate": "2025-02-15"
 }
 ```
 
-All fields are optional. To clear assignee, pass `assigneeEmail: null`.
+All fields are optional. To clear assignee or due date, pass `assigneeId: null` or `dueDate: null`. `dueDate` accepts either `YYYY-MM-DD` from date inputs or a full ISO datetime.
 
 **Success Response** `200 OK`:
 
@@ -893,9 +898,9 @@ Update task status via state machine. Creates an `ActivityLog` entry atomically 
 | From        | To                      |
 |-------------|-------------------------|
 | `TODO`      | `IN_PROGRESS`, `CANCELED` |
-| `IN_PROGRESS` | `IN_REVIEW`, `CANCELED` |
-| `IN_REVIEW` | `DONE`, `CANCELED`     |
-| `DONE`      | (none -- terminal)      |
+| `IN_PROGRESS` | `IN_REVIEW`, `TODO`, `CANCELED` |
+| `IN_REVIEW` | `DONE`, `IN_PROGRESS`, `CANCELED` |
+| `DONE`      | `IN_REVIEW`             |
 | `CANCELED`  | `TODO` (reopen)         |
 
 **Success Response** `200 OK`:
@@ -926,6 +931,111 @@ Update task status via state machine. Creates an `ActivityLog` entry atomically 
 The response includes the updated task (without activity logs). The `ActivityLog` is persisted in the same database transaction.
 
 **Error Codes:** `VALIDATION_ERROR` (400), `INVALID_TRANSITION` (400), `UNAUTHORIZED` (401), `FORBIDDEN` (403), `NOT_FOUND` (404), `INTERNAL_SERVER_ERROR` (500)
+
+---
+
+### GET /api/tasks/[taskId]/comments
+
+List comments for a task.
+
+**Auth:** Required (must be a member of the owning workspace)
+
+**Success Response** `200 OK`:
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "comment1abcdef123",
+      "taskId": "task1abcdef123",
+      "user": {
+        "id": "cm7abcdef123",
+        "name": "Alice",
+        "email": "alice@example.com"
+      },
+      "content": "I can reproduce this on staging.",
+      "createdAt": "2025-01-23T09:15:00.000Z"
+    }
+  ]
+}
+```
+
+**Error Codes:** `UNAUTHORIZED` (401), `NOT_FOUND` (404), `INTERNAL_SERVER_ERROR` (500)
+
+---
+
+### POST /api/tasks/[taskId]/comments
+
+Create a task comment.
+
+**Auth:** Required (OWNER or MEMBER of the owning workspace; VIEWER can read comments but cannot create them)
+
+**Request Body:**
+
+```json
+{
+  "content": "I can reproduce this on staging."
+}
+```
+
+**Success Response** `201 Created`:
+
+```json
+{
+  "success": true,
+  "data": {
+    "id": "comment1abcdef123",
+    "taskId": "task1abcdef123",
+    "user": {
+      "id": "cm7abcdef123",
+      "name": "Alice",
+      "email": "alice@example.com"
+    },
+    "content": "I can reproduce this on staging.",
+    "createdAt": "2025-01-23T09:15:00.000Z"
+  }
+}
+```
+
+**Error Codes:** `VALIDATION_ERROR` (400), `UNAUTHORIZED` (401), `FORBIDDEN` (403), `NOT_FOUND` (404), `INTERNAL_SERVER_ERROR` (500)
+
+---
+
+## AI
+
+### POST /api/ai/parse-task
+
+Parse a natural-language task description into task fields. This endpoint requires `DEEPSEEK_API_KEY`; when the key is missing, the UI hides the AI create button and the API returns `AI_NOT_CONFIGURED`.
+
+**Auth:** Required
+
+**Request Body:**
+
+```json
+{
+  "text": "Fix the login timeout bug, high priority, due next Friday",
+  "projectId": "proj1abcdef123"
+}
+```
+
+**Success Response** `200 OK`:
+
+```json
+{
+  "success": true,
+  "data": {
+    "title": "Fix login timeout bug",
+    "description": null,
+    "priority": "HIGH",
+    "dueDate": "2025-02-01"
+  }
+}
+```
+
+`dueDate` is returned as a date input value (`YYYY-MM-DD`) when the AI can infer a deadline.
+
+**Error Codes:** `VALIDATION_ERROR` (400), `UNAUTHORIZED` (401), `AI_PARSE_FAILED` (502), `AI_NOT_CONFIGURED` (503), `INTERNAL_SERVER_ERROR` (500)
 
 ---
 
@@ -998,6 +1108,18 @@ The response includes the updated task (without activity logs). The `ActivityLog
 }
 ```
 
+### CommentDTO
+
+```json
+{
+  "id": "string",
+  "taskId": "string",
+  "user": "UserDTO",
+  "content": "string",
+  "createdAt": "ISO 8601 string"
+}
+```
+
 ---
 
 ## Permission Matrix
@@ -1016,4 +1138,6 @@ The response includes the updated task (without activity logs). The `ActivityLog
 | Delete any task                          | Yes   | --     | --     | --           | --            |
 | Delete own task                          | Yes   | Yes    | --     | Yes          | --            |
 | Update task status                       | Yes   | --     | --     | --           | Yes           |
+| Create comment                           | Yes   | Yes    | --     | --           | --            |
+| Read comments                            | Yes   | Yes    | Yes    | --           | --            |
 | Read any resource (workspace/project/task) | Yes | Yes   | Yes    | --           | --            |

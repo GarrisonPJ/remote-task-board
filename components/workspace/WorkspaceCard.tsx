@@ -23,7 +23,7 @@ const ROLE_LABELS: Record<string, string> = {
 export function WorkspaceCard({ workspace }: { workspace: WorkspaceDTO }) {
   return (
     <Link href={`/workspaces/${workspace.id}`}>
-      <Card className="group hover:shadow-md hover:border-primary/30 hover:-translate-y-0.5 transition-all duration-200 active:scale-95 cursor-pointer">
+      <Card className="shadow-sm ring-0 border-foreground/10 group hover:shadow-md hover:border-primary/30 hover:-translate-y-0.5 transition-all duration-200 active:scale-95 cursor-pointer">
         <CardHeader>
           <div className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-200">
