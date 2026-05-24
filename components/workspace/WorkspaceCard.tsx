@@ -12,13 +12,8 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { FolderKanban } from "lucide-react";
+import { ROLE_LABELS } from "@/lib/constants";
 import type { WorkspaceDTO } from "@/types/domain";
-
-const ROLE_LABELS: Record<string, string> = {
-  OWNER: "Owner",
-  MEMBER: "Member",
-  VIEWER: "Viewer",
-};
 
 export function WorkspaceCard({ workspace }: { workspace: WorkspaceDTO }) {
   return (

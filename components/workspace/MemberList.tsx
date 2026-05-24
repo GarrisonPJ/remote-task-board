@@ -12,13 +12,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ROLE_LABELS } from "@/lib/constants";
 import type { WorkspaceMemberDTO, WorkspaceRole } from "@/types/domain";
-
-const ROLE_LABELS: Record<string, string> = {
-  OWNER: "Owner",
-  MEMBER: "Member",
-  VIEWER: "Viewer",
-};
 
 type Props = {
   workspaceId: string;

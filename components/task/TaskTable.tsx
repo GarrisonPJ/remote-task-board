@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { TaskStatusBadge } from "./TaskStatusBadge";
 import { TaskPriorityBadge } from "./TaskPriorityBadge";
+import { formatRelativeTime } from "@/lib/date-utils";
 import type { TaskDTO } from "@/types/domain";
 
 type Props = {
@@ -59,7 +60,7 @@ export function TaskTable({ tasks, showProject }: Props) {
                 </td>
               )}
               <td className="py-3 px-4 text-right text-xs text-muted-foreground">
-                {timeAgo(task.updatedAt)}
+                {formatRelativeTime(task.updatedAt)}
               </td>
             </tr>
           ))}
@@ -69,13 +70,3 @@ export function TaskTable({ tasks, showProject }: Props) {
   );
 }
 
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}

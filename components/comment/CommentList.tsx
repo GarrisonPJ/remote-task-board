@@ -1,6 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { formatRelativeTime } from "@/lib/date-utils";
 import type { CommentDTO } from "@/types/domain";
 
 type Props = {
@@ -56,7 +57,7 @@ export function CommentList({ taskId }: Props) {
           <div className="flex items-center gap-2 mb-1">
             <span className="text-sm font-medium">{comment.user.name}</span>
             <span className="text-xs text-muted-foreground">
-              {timeAgo(comment.createdAt)}
+              {formatRelativeTime(comment.createdAt)}
             </span>
           </div>
           <p className="text-sm text-muted-foreground whitespace-pre-wrap">
@@ -68,13 +69,3 @@ export function CommentList({ taskId }: Props) {
   );
 }
 
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}

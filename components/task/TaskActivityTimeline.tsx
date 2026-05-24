@@ -1,28 +1,10 @@
 import type { ActivityLogDTO } from "@/types/domain";
+import { STATUS_LABELS } from "@/lib/constants";
+import { formatRelativeTime } from "@/lib/date-utils";
 
 type Props = {
   logs: ActivityLogDTO[];
 };
-
-const STATUS_LABELS: Record<string, string> = {
-  TODO: "To Do",
-  IN_PROGRESS: "In Progress",
-  IN_REVIEW: "In Review",
-  DONE: "Done",
-  CANCELED: "Canceled",
-};
-
-function formatTime(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  return new Date(dateStr).toLocaleDateString();
-}
 
 export function TaskActivityTimeline({ logs }: Props) {
   if (!logs || logs.length === 0) return null;
@@ -69,7 +51,7 @@ export function TaskActivityTimeline({ logs }: Props) {
                 )}
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
-                {formatTime(log.createdAt)}
+                {formatRelativeTime(log.createdAt)}
               </p>
             </div>
           </div>

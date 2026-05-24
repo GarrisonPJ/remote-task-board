@@ -6,7 +6,7 @@ export function ok<T>(data: T, status = 200) {
   return NextResponse.json({ success: true, data }, { status });
 }
 
-export function fail(error: Error) {
+export function fail(error: unknown) {
   if (error instanceof AppError) {
     return NextResponse.json(
       {

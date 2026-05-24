@@ -2,6 +2,12 @@ import type { WorkspaceRole, TaskStatus } from "@/types/domain";
 
 export type { WorkspaceRole, TaskStatus };
 
+export const ROLE_LABELS: Record<string, string> = {
+  OWNER: "Owner",
+  MEMBER: "Member",
+  VIEWER: "Viewer",
+};
+
 export const STATUS_LABELS: Record<string, string> = {
   TODO: "To Do",
   IN_PROGRESS: "In Progress",

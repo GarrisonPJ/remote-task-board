@@ -112,7 +112,7 @@ export async function getProjectById(
   actorId: string
 ): Promise<{ project: ProjectDTO; userRole: WorkspaceRole }> {
   const p = await prisma.project.findUnique({ where: { id: projectId } });
-  if (!p) throw new NotFoundError("Project Not Founded");
+  if (!p) throw new NotFoundError("Project not found");
 
   const member = await getMembership(p.workspaceId, actorId);
 
@@ -140,7 +140,7 @@ export async function updateProject(
   actorId: string
 ): Promise<ProjectDTO> {
   const projects = await prisma.project.findUnique({ where: { id: projectId } });
-  if (!projects) throw new NotFoundError("Project Not Founded");
+  if (!projects) throw new NotFoundError("Project not found");
   const member = await getMembership(projects.workspaceId, actorId);
 
   if (!canUpdateProject(member.role)) throw new ForbiddenError();
@@ -170,7 +170,7 @@ export async function deleteProject(
   actorId: string
 ): Promise<void> {
   const projects = await prisma.project.findUnique({ where: { id: projectId } });
-  if (!projects) throw new NotFoundError("Project Not Founded");
+  if (!projects) throw new NotFoundError("Project not found");
   const member = await getMembership(projects.workspaceId, actorId);
 
   if (!canDeleteProject(member.role)) throw new ForbiddenError();
