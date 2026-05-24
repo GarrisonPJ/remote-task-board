@@ -6,64 +6,62 @@
 
 import { prisma } from "@/lib/prisma";
 import { ForbiddenError, NotFoundError, AppError } from "@/lib/errors";
+import {
+  VALID_TRANSITIONS,
+  canCreateTask,
+  canUpdateTask,
+  canDeleteTask,
+  canUpdateTaskStatus,
+} from "@/lib/constants";
 import type {
   CreateTaskInput,
   UpdateTaskInput,
   UpdateTaskStatusInput,
 } from "@/schemas/task.schema";
+import type { WorkspaceRole } from "@/lib/constants";
 import type { TaskDTO } from "@/types/domain";
 
 export { listTasks } from "./task-list.service";
 
-type WorkspaceRole = "OWNER" | "MEMBER" | "VIEWER";
-type TaskStatus = "TODO" | "IN_PROGRESS" | "IN_REVIEW" | "DONE" | "CANCELED";
-
 // ============================================================
-// 状态机转换表
+// getTaskStats — 任务统计（用于 Dashboard）
 // ============================================================
 
-/** Defines allowed state transitions. Key = current status, value = valid targets. */
-export const VALID_TRANSITIONS: Record<TaskStatus, TaskStatus[]> = {
-  TODO: ["IN_PROGRESS", "CANCELED"],
-  IN_PROGRESS: ["IN_REVIEW", "CANCELED", "TODO"],
-  IN_REVIEW: ["DONE", "IN_PROGRESS", "CANCELED"],
-  DONE: ["IN_REVIEW"],
-  CANCELED: ["TODO"],
-};
+/** Returns task counts for the dashboard stat cards. Uses Prisma counts to avoid fetching full records. */
+export async function getTaskStats(actorId: string): Promise<{
+  total: number;
+  openTasks: number;
+  inReview: number;
+}> {
+  const memberships = await prisma.workspaceMember.findMany({
+    where: { userId: actorId },
+    select: { workspaceId: true },
+  });
+  const workspaceIds = memberships.map((m) => m.workspaceId);
 
-// ============================================================
-// 权限辅助函数
-// ============================================================
+  const projects = await prisma.project.findMany({
+    where: { workspaceId: { in: workspaceIds } },
+    select: { id: true },
+  });
+  const projectIds = projects.map((p) => p.id);
 
-export function canCreateTask(role: WorkspaceRole): boolean {
-  return role === "OWNER" || role === "MEMBER";
-}
+  const [total, openTasks, inReview] = await Promise.all([
+    prisma.task.count({ where: { projectId: { in: projectIds } } }),
+    prisma.task.count({
+      where: {
+        projectId: { in: projectIds },
+        status: { notIn: ["DONE", "CANCELED"] },
+      },
+    }),
+    prisma.task.count({
+      where: {
+        projectId: { in: projectIds },
+        status: "IN_REVIEW",
+      },
+    }),
+  ]);
 
-export function canUpdateTask(role: WorkspaceRole): boolean {
-  return role === "OWNER" || role === "MEMBER";
-}
-
-/**
- * OWNER can delete any task; MEMBER can only delete tasks they created.
- */
-export function canDeleteTask(role: WorkspaceRole, creatorId: string, actorId: string): boolean {
-  if (role === "OWNER") return true;
-  if (role === "MEMBER") return creatorId === actorId;
-  return false;
-}
-
-/**
- * OWNER can always update status; MEMBER can only update if they are the assignee.
- * When assigneeId is null (unassigned), MEMBER cannot update status.
- */
-export function canUpdateTaskStatus(
-  role: WorkspaceRole,
-  assigneeId: string | null,
-  actorId: string
-): boolean {
-  if (role === "OWNER") return true;
-  if (role === "MEMBER" && assigneeId === actorId) return true;
-  return false;
+  return { total, openTasks, inReview };
 }
 
 // ============================================================
@@ -133,6 +131,16 @@ async function validateAssigneeInWorkspace(
   }
 }
 
+function parseDueDateInput(dueDate: string | null | undefined): Date | null | undefined {
+  if (dueDate === undefined) return undefined;
+  if (dueDate === null) return null;
+
+  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(dueDate)
+    ? `${dueDate}T00:00:00.000Z`
+    : dueDate;
+  return new Date(normalized);
+}
+
 // ============================================================
 // createTask — 创建任务
 // ============================================================
@@ -175,7 +183,7 @@ export async function createTask(
       description: input.description,
       priority: input.priority ?? "MEDIUM",
       assigneeId: input.assigneeId ?? null,
-      dueDate: input.dueDate ? new Date(input.dueDate) : null,
+      dueDate: parseDueDateInput(input.dueDate) ?? null,
       creatorId: actorId,
       status: "TODO",
     },
@@ -360,7 +368,7 @@ export async function updateTask(
       description: input.description,
       priority: input.priority,
       assigneeId: input.assigneeId,
-      dueDate: input.dueDate ? new Date(input.dueDate) : input.dueDate === null ? null : undefined,
+      dueDate: parseDueDateInput(input.dueDate),
     },
     include: {
       assignee: {

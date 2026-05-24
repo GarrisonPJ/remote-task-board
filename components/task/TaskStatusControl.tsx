@@ -4,15 +4,8 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
-import type { WorkspaceRole } from "@/types/domain";
-
-const VALID_TRANSITIONS: Record<string, string[]> = {
-  TODO: ["IN_PROGRESS", "CANCELED"],
-  IN_PROGRESS: ["IN_REVIEW", "CANCELED", "TODO"],
-  IN_REVIEW: ["DONE", "IN_PROGRESS", "CANCELED"],
-  DONE: ["IN_REVIEW"],
-  CANCELED: ["TODO"],
-};
+import { VALID_TRANSITIONS, canUpdateTaskStatus } from "@/lib/constants";
+import type { WorkspaceRole, TaskStatus } from "@/lib/constants";
 
 const STATUS_LABELS: Record<string, string> = {
   TODO: "To Do",
@@ -29,12 +22,6 @@ type Props = {
   assigneeId: string | null;
   userRole: WorkspaceRole;
 };
-
-function canChangeStatus(role: WorkspaceRole, assigneeId: string | null, userId: string): boolean {
-  if (role === "OWNER") return true;
-  if (role === "MEMBER") return assigneeId === userId;
-  return false;
-}
 
 export function TaskStatusControl({ taskId, currentStatus, userId, assigneeId, userRole }: Props) {
   const queryClient = useQueryClient();
@@ -59,9 +46,9 @@ export function TaskStatusControl({ taskId, currentStatus, userId, assigneeId, u
     },
   });
 
-  if (!canChangeStatus(userRole, assigneeId, userId)) return null;
+  if (!canUpdateTaskStatus(userRole, assigneeId, userId)) return null;
 
-  const targets = VALID_TRANSITIONS[currentStatus];
+  const targets = VALID_TRANSITIONS[currentStatus as TaskStatus];
   if (!targets || targets.length === 0) return null;
 
   async function handleChange(newStatus: string) {
@@ -69,7 +56,7 @@ export function TaskStatusControl({ taskId, currentStatus, userId, assigneeId, u
   }
 
   return (
-    <div className="flex gap-2 items-center p-3 rounded-lg bg-secondary/50 border">
+    <div className="flex flex-wrap gap-2 items-center">
       <span className="text-sm text-muted-foreground">
         Move to:
       </span>

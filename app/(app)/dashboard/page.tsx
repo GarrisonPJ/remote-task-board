@@ -23,7 +23,7 @@
 import { getUserFromSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { listMyWorkspaces } from "@/services/workspace.service";
-import { listTasks } from "@/services/task.service";
+import { listTasks, getTaskStats } from "@/services/task.service";
 import { WorkspaceCard } from "@/components/workspace/WorkspaceCard";
 import { TaskList } from "@/components/task/TaskList";
 import { CreateWorkspaceDialog } from "@/components/workspace/CreateWorkspaceDialog";
@@ -33,16 +33,11 @@ export default async function DashboardPage() {
   const user = await getUserFromSession();
   if (!user) redirect("/login");
 
-  const [workspaces, recentTasks, allTasks] = await Promise.all([
+  const [workspaces, recentTasks, stats] = await Promise.all([
     listMyWorkspaces(user.id),
     listTasks({ page: 1, pageSize: 5 }, user.id),
-    listTasks({ page: 1, pageSize: 100 }, user.id),
+    getTaskStats(user.id),
   ]);
-
-  const openTasks = allTasks.items.filter(
-    (t) => t.status !== "DONE" && t.status !== "CANCELED"
-  ).length;
-  const inReview = allTasks.items.filter((t) => t.status === "IN_REVIEW").length;
 
   return (
     <div className="space-y-8">
@@ -52,32 +47,32 @@ export default async function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="rounded-xl border bg-card p-5 animate-slide-up hover:border-primary hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 active:scale-95 stagger-1">
+        <div className="rounded-xl border bg-card p-5 animate-slide-up hover:border-primary hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 active:scale-95 shadow-sm stagger-1">
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
             <FolderKanban className="h-5 w-5 text-primary" />
           </div>
           <div className="text-2xl font-bold tracking-tight">{workspaces.length}</div>
           <div className="text-xs text-muted-foreground mt-0.5">Workspaces</div>
         </div>
-        <div className="rounded-xl border bg-card p-5 animate-slide-up hover:border-primary hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 active:scale-95 stagger-2">
+        <div className="rounded-xl border bg-card p-5 animate-slide-up hover:border-primary hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 active:scale-95 shadow-sm stagger-2">
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
             <ListTodo className="h-5 w-5 text-primary" />
           </div>
-          <div className="text-2xl font-bold tracking-tight">{allTasks.meta.total}</div>
+          <div className="text-2xl font-bold tracking-tight">{stats.total}</div>
           <div className="text-xs text-muted-foreground mt-0.5">Total Tasks</div>
         </div>
-        <div className="rounded-xl border bg-card p-5 animate-slide-up hover:border-primary hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 active:scale-95 stagger-3">
+        <div className="rounded-xl border bg-card p-5 animate-slide-up hover:border-primary hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 active:scale-95 shadow-sm stagger-3">
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
             <Clock className="h-5 w-5 text-primary" />
           </div>
-          <div className="text-2xl font-bold tracking-tight">{openTasks}</div>
+          <div className="text-2xl font-bold tracking-tight">{stats.openTasks}</div>
           <div className="text-xs text-muted-foreground mt-0.5">Open Tasks</div>
         </div>
-        <div className="rounded-xl border bg-card p-5 animate-slide-up hover:border-primary hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 active:scale-95 stagger-4">
+        <div className="rounded-xl border bg-card p-5 animate-slide-up hover:border-primary hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 active:scale-95 shadow-sm stagger-4">
           <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center mb-3">
             <Search className="h-5 w-5 text-primary" />
           </div>
-          <div className="text-2xl font-bold tracking-tight">{inReview}</div>
+          <div className="text-2xl font-bold tracking-tight">{stats.inReview}</div>
           <div className="text-xs text-muted-foreground mt-0.5">In Review</div>
         </div>
       </div>

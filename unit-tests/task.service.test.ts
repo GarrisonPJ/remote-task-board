@@ -4,7 +4,7 @@ import {
   canCreateTask,
   canDeleteTask,
   canUpdateTaskStatus,
-} from "@/services/task.service";
+} from "@/lib/constants";
 
 describe("VALID_TRANSITIONS", () => {
   it("allows TODO → IN_PROGRESS", () => {
@@ -27,7 +27,7 @@ describe("VALID_TRANSITIONS", () => {
     expect(VALID_TRANSITIONS.CANCELED).toContain("TODO");
   });
 
-  it("DONE is a terminal state (only IN_REVIEW)", () => {
+  it("allows DONE to reopen to IN_REVIEW only", () => {
     expect(VALID_TRANSITIONS.DONE).toEqual(["IN_REVIEW"]);
   });
 });
