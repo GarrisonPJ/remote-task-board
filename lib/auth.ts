@@ -4,25 +4,22 @@
  */
 
 import { cookies } from "next/headers";
+import type { UserDTO } from "@/types/domain";
 import { UnauthorizedError } from "./errors";
 import { getCurrentUser, cleanupExpiredSessions } from "@/services/auth.service";
 
 /**
- * 从 cookie 读取 session_id，调 service 查 Session 表，返回当前用户。
- * 未登录返回 null（不抛异常，让调用方决定怎么处理）。
+ * Reads session_id from cookie and returns the authenticated user.
+ * Returns null (not throw) so callers can decide how to handle unauthenticated state.
  */
-export async function getUserFromSession(): Promise<{
-  id: string;
-  name: string;
-  email: string;
-} | null> {
+export async function getUserFromSession(): Promise<UserDTO | null> {
   try {
-    cleanupExpiredSessions();  // ~1%概率清理过期 session
+    cleanupExpiredSessions(); // time-based throttle, not every request
     const cookieStore = await cookies();
     const sessionCookie = cookieStore.get("session_id");
     if (!sessionCookie?.value) return null;
 
-    // 数据库逻辑委托给 auth service（和 logout/register/login 统一管理）
+    // Delegates DB logic to auth service (single code path with login/register/logout)
     return await getCurrentUser(sessionCookie.value);
   } catch {
     return null;

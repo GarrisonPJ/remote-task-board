@@ -4,12 +4,12 @@ import type {
   CreateProjectInput,
   UpdateProjectInput,
 } from "@/schemas/project.schema";
-import type { ProjectDTO } from "@/types/domain";
+import type { ProjectDTO, ProjectDetailResult } from "@/types/domain";
 
 type WorkspaceRole = "OWNER" | "MEMBER" | "VIEWER";
 
 // ============================================================
-// 权限辅助函数
+// Permission helpers
 // ============================================================
 
 function canCreateProject(role: WorkspaceRole): boolean {
@@ -20,13 +20,13 @@ function canDeleteProject(role: WorkspaceRole): boolean {
   return role === "OWNER";
 }
 
-/** OWNER 或 MEMBER 都能编辑 */
+/** Workspace OWNER and MEMBER can edit */
 function canUpdateProject(role: WorkspaceRole): boolean {
   return role === "OWNER" || role === "MEMBER";
 }
 
 // ============================================================
-// 公共辅助：获取用户在 workspace 中的成员资格
+// Helper: look up user membership in a workspace
 // ============================================================
 
 /**
@@ -45,7 +45,7 @@ async function getMembership(workspaceId: string, actorId: string) {
 }
 
 // ============================================================
-// createProject — 创建项目
+// createProject
 // ============================================================
 
 /** Creates a new project within a workspace. */
@@ -78,7 +78,7 @@ export async function createProject(
 }
 
 // ============================================================
-// listProjects — 获取项目列表
+// listProjects
 // ============================================================
 
 /** Lists all projects in a workspace. */
@@ -103,14 +103,14 @@ export async function listProjects(
 }
 
 // ============================================================
-// getProjectById — 获取项目详情
+// getProjectById
 // ============================================================
 
 /** Gets a project by its ID with user role. */
 export async function getProjectById(
   projectId: string,
   actorId: string
-): Promise<{ project: ProjectDTO; userRole: WorkspaceRole }> {
+): Promise<ProjectDetailResult> {
   const p = await prisma.project.findUnique({ where: { id: projectId } });
   if (!p) throw new NotFoundError("Project not found");
 
@@ -130,7 +130,7 @@ export async function getProjectById(
 }
 
 // ============================================================
-// updateProject — 更新项目
+// updateProject
 // ============================================================
 
 /** Updates a project. Only workspace OWNER or MEMBER can update. */
@@ -161,7 +161,7 @@ export async function updateProject(
 }
 
 // ============================================================
-// deleteProject — 删除项目（仅 OWNER）
+// deleteProject (OWNER only)
 // ============================================================
 
 /** Deletes a project. Only workspace OWNER can delete. */

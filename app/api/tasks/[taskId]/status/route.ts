@@ -1,13 +1,14 @@
 /**
- * PATCH /api/tasks/:taskId/status — 更新任务状态
+ * PATCH /api/tasks/:taskId/status
  *
- * 这是项目中最重要的写端点：
- * 2. 权限检查（OWNER 全面 + MEMBER 需是 assignee）
- * 3. 事务：同时更新 task.status 和创建 ActivityLog
+ * The most important write endpoint in the project:
+ * 1. State-machine validation (VALID_TRANSITIONS in lib/constants.ts)
+ * 2. Permission check (OWNER unrestricted, MEMBER must be assignee)
+ * 3. Atomic transaction: task.status update + ActivityLog creation
  *
- * Prisma $transaction 保证原子性：
- *   如果 ActivityLog 写入失败，task.status 的更新会自动回滚。
- *   不会出现"状态改了但没日志"的数据不一致。
+ * Prisma $transaction guarantees atomicity:
+ *   If the ActivityLog write fails, the task.status update rolls back automatically.
+ *   No risk of "status changed without an audit log" inconsistency.
  */
 
 import { NextRequest } from "next/server";

@@ -54,7 +54,7 @@ export function TaskForm({ projectId, task, workspaceId, onSuccessAction }: Task
       .catch(() => {});
   }, [workspaceId]);
 
-  async function handleSubmit(e: { preventDefault: () => void }) {
+  async function handleSubmit(e: { preventDefault(): void }) {
     e.preventDefault();
     setIsSubmitting(true);
 

@@ -1,13 +1,11 @@
 /**
- * Task API 路由
+ * Task API routes
  *
  * GET  /api/tasks?projectId=xxx&status=TODO&q=search&page=1&pageSize=20
  * POST /api/tasks
  *
- * GET 查询参数通过 URL search params 传递，zod coerce 自动转换类型。
- *
- * 筛选/分页/搜索完整示例 URL：
- *   /api/tasks?projectId=abc&status=IN_PROGRESS&priority=HIGH&q=bug&page=1&pageSize=10
+ * Query params are extracted from URL search params and parsed by zod (coerce + defaults + validation).
+ * Full example: /api/tasks?projectId=abc&status=IN_PROGRESS&priority=HIGH&q=bug&page=1&pageSize=10
  */
 
 import { NextRequest } from "next/server";
@@ -20,10 +18,10 @@ export async function GET(req: NextRequest) {
   try {
     const user = await requireUser();
 
-    // 将 URL search params 转为普通对象（zod parse 需要）
+    // URLSearchParams → plain object for zod parsing
     const params = Object.fromEntries(req.nextUrl.searchParams.entries());
 
-    // parse() 执行：coerce 类型转换 + 默认值填充 + 校验
+    // zod handles coercion, defaults, and validation
     const query = listTasksQuerySchema.parse(params);
 
     const result = await listTasks(query, user.id);

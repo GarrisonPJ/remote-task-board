@@ -1,12 +1,8 @@
 /**
- * POST /api/auth/logout — 用户登出
+ * POST /api/auth/logout
  *
- * 登出操作：
- * 1. 验证登录状态
- * 2. 调用 service 删除 session
- * 3. 清除浏览器 cookie
- *
- * cookie 读取方式：req.cookies.get("session_id")?.value
+ * Clears the session: validates auth → deletes session from DB → clears cookie.
+ * The cookie is cleared even when no valid session_id is found server-side.
  */
 
 import { NextRequest, NextResponse } from "next/server";
@@ -22,7 +18,6 @@ export async function POST(req: NextRequest) {
     const sessionId = req.cookies.get("session_id")?.value;
     if (sessionId) await logout(sessionId);
 
-    // 清除 cookie —— 无论 session 是否存在都执行
     const response = NextResponse.json(
       { success: true, data: null },
       { status: 200 }

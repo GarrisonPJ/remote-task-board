@@ -1,7 +1,7 @@
 /**
- * TaskList — 任务列表（Server Component）
+ * TaskList — task grid (Server Component)
  *
- * 以卡片网格布局显示任务列表。包含空状态处理。
+ * Renders tasks in a card grid with empty state handling.
  */
 
 import { TaskCard } from "./TaskCard";

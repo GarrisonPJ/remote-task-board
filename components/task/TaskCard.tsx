@@ -1,10 +1,7 @@
 /**
- * TaskCard — 任务卡片（Server Component）
+ * TaskCard — single task summary card (Server Component)
  *
- * 展示单个任务的摘要信息。
- * 使用 shadcn/ui 的 Card 组件包裹。
- *
- * 你参考文档：shadcn/ui → Card（Card, CardHeader, CardTitle, CardContent, CardFooter）
+ * Renders a compact task preview using shadcn/ui Card.
  */
 
 import Link from "next/link";

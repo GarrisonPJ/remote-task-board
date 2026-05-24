@@ -1,5 +1,5 @@
 /**
- * ProjectCard — 项目卡片
+ * ProjectCard — project summary card
  */
 
 import Link from "next/link";

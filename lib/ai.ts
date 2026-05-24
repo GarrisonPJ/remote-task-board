@@ -23,12 +23,14 @@ Rules:
 - If no date mentioned, dueDate is null
 - Only output the JSON object, nothing else.`;
 
-export async function parseTask(text: string): Promise<{
+export interface ParseTaskResult {
   title: string;
   description?: string | null;
   priority: string;
   dueDate?: string | null;
-}> {
+}
+
+export async function parseTask(text: string): Promise<ParseTaskResult> {
   if (!env.DEEPSEEK_API_KEY) {
     throw new AppError(
       "AI_NOT_CONFIGURED",

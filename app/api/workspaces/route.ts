@@ -1,8 +1,8 @@
 /**
- * Workspace API 路由
+ * Workspace API routes
  *
- * GET  /api/workspaces — 获取我的工作区列表
- * POST /api/workspaces — 创建工作区
+ * GET  /api/workspaces — lists workspaces for the current user
+ * POST /api/workspaces — creates a new workspace
  */
 
 import { NextRequest } from "next/server";
@@ -14,9 +14,6 @@ import {
   createWorkspace,
 } from "@/services/workspace.service";
 
-// ============================================================
-// GET /api/workspaces — 获取当前用户的工作区列表
-// ============================================================
 export async function GET() {
   try {
     const user = await requireUser();
@@ -27,9 +24,6 @@ export async function GET() {
   }
 }
 
-// ============================================================
-// POST /api/workspaces — 创建工作区
-// ============================================================
 export async function POST(req: NextRequest) {
   try {
     const user = await requireUser();

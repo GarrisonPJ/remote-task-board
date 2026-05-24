@@ -4,10 +4,12 @@ import { AppError } from "@/lib/errors";
 import type { RegisterInput, LoginInput } from "@/schemas/auth.schema";
 import type { UserDTO } from "@/types/domain";
 
-export async function register(input: RegisterInput): Promise<{
+export interface AuthResult {
   user: UserDTO;
   sessionId: string;
-}> {
+}
+
+export async function register(input: RegisterInput): Promise<AuthResult> {
   const existing = await prisma.user.findUnique({
     where: { email: input.email },
   });
@@ -47,10 +49,7 @@ export async function register(input: RegisterInput): Promise<{
   return { user, sessionId };
 }
 
-export async function login(input: LoginInput): Promise<{
-  user: UserDTO;
-  sessionId: string;
-}> {
+export async function login(input: LoginInput): Promise<AuthResult> {
   const user = await prisma.user.findUnique({
     where: { email: input.email },
     select: { id: true, name: true, email: true, passwordHash: true },

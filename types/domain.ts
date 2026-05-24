@@ -9,36 +9,36 @@ export type TaskStatus =
 
 export type TaskPriority = "LOW" | "MEDIUM" | "HIGH" | "URGENT";
 
-export type UserDTO = {
+export interface UserDTO {
   id: string;
   name: string;
   email: string;
-};
+}
 
-export type WorkspaceDTO = {
+export interface WorkspaceDTO {
   id: string;
   name: string;
   role: WorkspaceRole;
   createdAt: string;
   updatedAt: string;
-};
+}
 
-export type WorkspaceMemberDTO = {
+export interface WorkspaceMemberDTO {
   id: string;
   user: UserDTO;
   role: WorkspaceRole;
-};
+}
 
-export type ProjectDTO = {
+export interface ProjectDTO {
   id: string;
   workspaceId: string;
   name: string;
   description?: string | null;
   createdAt: string;
   updatedAt: string;
-};
+}
 
-export type TaskDTO = {
+export interface TaskDTO {
   id: string;
   projectId: string;
   title: string;
@@ -51,21 +51,38 @@ export type TaskDTO = {
   activityLogs?: ActivityLogDTO[];
   createdAt: string;
   updatedAt: string;
-};
+}
 
-export type ActivityLogDTO = {
+export interface ActivityLogDTO {
   id: string;
   taskId: string;
   actor: UserDTO;
   fromStatus: TaskStatus | null;
   toStatus: TaskStatus;
   createdAt: string;
-};
+}
 
-export type CommentDTO = {
+export interface CommentDTO {
   id: string;
   taskId: string;
   user: UserDTO;
   content: string;
   createdAt: string;
-};
+}
+
+// Service return types (named for reuse across callers)
+export interface TaskStats {
+  total: number;
+  openTasks: number;
+  inReview: number;
+}
+
+export interface TaskDetailResult {
+  task: TaskDTO;
+  userRole: WorkspaceRole;
+}
+
+export interface ProjectDetailResult {
+  project: ProjectDTO;
+  userRole: WorkspaceRole;
+}

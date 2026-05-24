@@ -10,16 +10,16 @@ import type { WorkspaceDTO, WorkspaceMemberDTO } from "@/types/domain";
 type WorkspaceRole = "OWNER" | "MEMBER" | "VIEWER";
 
 // ============================================================
-// 权限辅助函数
+// Permission helpers
 // ============================================================
 
-/** 只有 OWNER 能修改工作区设置、管理成员、删除工作区 */
+/** Only OWNER can manage workspace settings, members, and delete the workspace */
 function canManageWorkspace(role: WorkspaceRole): boolean {
   return role === "OWNER";
 }
 
 // ============================================================
-// createWorkspace — 创建工作区
+// createWorkspace — creates a workspace and adds creator as OWNER
 // ============================================================
 
 /** Creates a workspace and adds the creator as OWNER. */
@@ -53,7 +53,7 @@ export async function createWorkspace(
 }
 
 // ============================================================
-// listMyWorkspaces — 获取我的工作区列表
+// listMyWorkspaces
 // ============================================================
 
 /** Lists all workspaces the user is a member of. Queries from WorkspaceMember for data isolation. */
@@ -77,7 +77,7 @@ export async function listMyWorkspaces(actorId: string): Promise<WorkspaceDTO[]>
 }
 
 // ============================================================
-// getWorkspaceById — 获取工作区详情
+// getWorkspaceById
 // ============================================================
 
 /** Gets a workspace by its ID. Only accessible to workspace members. */
@@ -103,7 +103,7 @@ export async function getWorkspaceById(
 }
 
 // ============================================================
-// updateWorkspace — 更新工作区名称（仅 OWNER）
+// updateWorkspace (OWNER only)
 // ============================================================
 
 export async function updateWorkspace(
@@ -132,7 +132,7 @@ export async function updateWorkspace(
 }
 
 // ============================================================
-// deleteWorkspace — 删除工作区（仅 OWNER）
+// deleteWorkspace (OWNER only)
 // ============================================================
 
 export async function deleteWorkspace(
@@ -149,7 +149,7 @@ export async function deleteWorkspace(
 }
 
 // ============================================================
-// addMember — 添加成员（仅 OWNER）
+// addMember (OWNER only)
 // ============================================================
 
 export async function addMember(
@@ -180,7 +180,7 @@ export async function addMember(
 }
 
 // ============================================================
-// listMembers — 获取成员列表
+// listMembers
 // ============================================================
 
 export async function listMembers(
@@ -207,7 +207,7 @@ export async function listMembers(
 }
 
 // ============================================================
-// removeMember — 移除成员（仅 OWNER）
+// removeMember (OWNER only)
 // ============================================================
 
 export async function removeMember(

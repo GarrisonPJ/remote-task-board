@@ -1,14 +1,9 @@
 /**
- * GET /api/auth/me — 获取当前登录用户
+ * GET /api/auth/me
  *
- * 最简单的 GET 端点：requireUser() 已经完成 session 验证并返回 user，
- * 直接包装返回即可。
- *
- * requireUser() 的工作流程（在 lib/auth.ts 中实现）：
- *   1. 从 cookie 中读取 session_id
- *   2. 在 Session 表中查找 + 检查过期
- *   3. 通过 userId 关联查询 User
- *   4. 未登录 → 抛出 UnauthorizedError → fail() 返回 401
+ * Returns the currently authenticated user.
+ * requireUser() validates the session cookie and returns the user or throws 401.
+ * The complete flow is: read session_id cookie → query Session table → check expiry → return User.
  */
 
 import { ok, fail } from "@/lib/api-response";

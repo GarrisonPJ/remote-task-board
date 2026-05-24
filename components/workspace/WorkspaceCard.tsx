@@ -1,7 +1,7 @@
 /**
- * WorkspaceCard — 工作区卡片
+ * WorkspaceCard — workspace summary card
  *
- * 用 shadcn/ui 的 Card 组件展示 workspace 基本信息。
+ * Renders a workspace preview using shadcn/ui Card.
  */
 
 import Link from "next/link";

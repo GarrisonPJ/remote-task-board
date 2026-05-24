@@ -1,13 +1,12 @@
 /**
- * /api/workspaces/[workspaceId] — 单个工作区操作
+ * /api/workspaces/[workspaceId]
  *
- * GET    /api/workspaces/:id — 获取详情
- * PATCH  /api/workspaces/:id — 更新名称（仅 OWNER）
- * DELETE /api/workspaces/:id — 删除工作区（仅 OWNER）
+ * GET    /api/workspaces/:id — detail
+ * PATCH  /api/workspaces/:id — rename (OWNER only)
+ * DELETE /api/workspaces/:id — delete workspace (OWNER only, cascades to projects/tasks)
  *
- * Next.js App Router 动态路由：
- *   [workspaceId] 目录名 → params.workspaceId 获取值
- *   Next.js 15+ 中 params 是 Promise，需要用 await params 解包
+ * In Next.js App Router, [workspaceId] is a dynamic segment accessed via params.
+ * Next.js 15+ requires await params to unwrap the Promise.
  */
 
 import { NextRequest } from "next/server";
@@ -20,9 +19,6 @@ import {
 } from "@/services/workspace.service";
 import { updateWorkspaceSchema } from "@/schemas/workspace.schema";
 
-// ============================================================
-// GET /api/workspaces/:workspaceId
-// ============================================================
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ workspaceId: string }> }
@@ -37,13 +33,7 @@ export async function GET(
   }
 }
 
-// ============================================================
-// PATCH /api/workspaces/:workspaceId
-// ============================================================
-
-/**
- * 更新工作区名称（仅 OWNER）。
- */
+/** Updates workspace name (OWNER only). */
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ workspaceId: string }> }
@@ -60,13 +50,9 @@ export async function PATCH(
   }
 }
 
-// ============================================================
-// DELETE /api/workspaces/:workspaceId
-// ============================================================
-
 /**
- * 删除工作区（仅 OWNER）。
- * 级联删除：Project/Task/ActivityLog 由 Prisma schema 的 onDelete: Cascade 自动处理。
+ * Deletes a workspace (OWNER only).
+ * Prisma onDelete: Cascade handles Project, Task, and ActivityLog cleanup.
  */
 export async function DELETE(
   _req: NextRequest,

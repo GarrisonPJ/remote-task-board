@@ -19,21 +19,17 @@ import type {
   UpdateTaskStatusInput,
 } from "@/schemas/task.schema";
 import type { WorkspaceRole } from "@/lib/constants";
-import type { TaskDTO } from "@/types/domain";
+import type { TaskDTO, TaskStats, TaskDetailResult } from "@/types/domain";
 import { toTaskDTO } from "./task-mapper";
 
 export { listTasks } from "./task-list.service";
 
 // ============================================================
-// getTaskStats — 任务统计（用于 Dashboard）
+// getTaskStats — dashboard stat cards
 // ============================================================
 
 /** Returns task counts for the dashboard stat cards. Uses Prisma counts to avoid fetching full records. */
-export async function getTaskStats(actorId: string): Promise<{
-  total: number;
-  openTasks: number;
-  inReview: number;
-}> {
+export async function getTaskStats(actorId: string): Promise<TaskStats> {
   const memberships = await prisma.workspaceMember.findMany({
     where: { userId: actorId },
     select: { workspaceId: true },
@@ -66,7 +62,7 @@ export async function getTaskStats(actorId: string): Promise<{
 }
 
 // ============================================================
-// 公共辅助函数
+// Shared helpers
 // ============================================================
 
 /**
@@ -143,7 +139,7 @@ function parseDueDateInput(dueDate: string | null | undefined): Date | null | un
 }
 
 // ============================================================
-// createTask — 创建任务
+// createTask
 // ============================================================
 
 /** Creates a task with permission check, assignee validation, and creator injection. */
@@ -199,7 +195,7 @@ export async function createTask(
 }
 
 // ============================================================
-// updateTaskStatus — 状态变更 + ActivityLog
+// updateTaskStatus — state machine + atomic ActivityLog
 // ============================================================
 
 /**
@@ -253,14 +249,14 @@ export async function updateTaskStatus(
 }
 
 // ============================================================
-// getTaskById — 获取任务详情（含 ActivityLog 时间线）
+// getTaskById — detail with ActivityLog timeline
 // ============================================================
 
 /** Gets a task by ID with assignee, activity logs, and permission check. */
 export async function getTaskById(
   taskId: string,
   actorId: string
-): Promise<{ task: TaskDTO; userRole: WorkspaceRole }> {
+): Promise<TaskDetailResult> {
   const t = await prisma.task.findUnique({
     where: { id: taskId },
     include: {
@@ -301,7 +297,7 @@ export async function getTaskById(
 }
 
 // ============================================================
-// updateTask — 更新任务字段
+// updateTask
 // ============================================================
 
 export async function updateTask(
@@ -338,7 +334,7 @@ export async function updateTask(
 }
 
 // ============================================================
-// deleteTask — 删除任务
+// deleteTask
 // ============================================================
 
 export async function deleteTask(
