@@ -1,13 +1,13 @@
 import { test, expect } from "@playwright/test";
 
 test("member cannot delete another user's task", async ({ browser, request }) => {
-  // 1. alice（OWNER）登录并创建 task
+  // alice (OWNER) logs in and creates a task
   const loginAlice = await request.post("/api/auth/login", {
     data: { email: "alice@test.com", password: "password123" },
   });
   expect(loginAlice.status()).toBe(200);
 
-  // 找一个 project
+  // find a project
   const wsRes = await request.get("/api/workspaces");
   const wsBody = await wsRes.json();
   const wsId = wsBody.data[0].id;
@@ -16,24 +16,24 @@ test("member cannot delete another user's task", async ({ browser, request }) =>
   const projBody = await projRes.json();
   const projId = projBody.data[0].id;
 
-  // 创建 task
+  // create a task
   const taskRes = await request.post("/api/tasks", {
     data: { projectId: projId, title: "Task to protect" },
   });
   expect(taskRes.status()).toBe(201);
   const taskId = (await taskRes.json()).data.id;
 
-  // 2. 用 bob 的独立 context 尝试删除
+  // bob (separate context) attempts to delete
   const bobCtx = await browser.newContext();
   const bobReq = bobCtx.request;
 
-  // bob 登录
+  // bob logs in
   const loginBob = await bobReq.post("/api/auth/login", {
     data: { email: "bob@test.com", password: "password123" },
   });
   expect(loginBob.status()).toBe(200);
 
-  // bob 尝试删除 alice 的 task
+  // bob attempts to delete alice's task
   const deleteRes = await bobReq.delete(`/api/tasks/${taskId}`);
   expect(deleteRes.status()).toBe(403);
 
@@ -41,7 +41,7 @@ test("member cannot delete another user's task", async ({ browser, request }) =>
 });
 
 test("viewer cannot create task", async ({ browser, request }) => {
-  // 1. alice（OWNER）登录 → 获取 workspace + project
+  // alice (OWNER) logs in, gets workspace + project
   const loginAlice = await request.post("/api/auth/login", {
     data: { email: "alice@test.com", password: "password123" },
   });
@@ -55,7 +55,7 @@ test("viewer cannot create task", async ({ browser, request }) => {
   const projBody = await projRes.json();
   const projId = projBody.data[0].id;
 
-  // 2. 注册 viewer 用户（使用独立 context 以隔离 cookie）
+  // register a viewer user (separate context for cookie isolation)
   const viewerCtx = await browser.newContext();
   const viewerReq = viewerCtx.request;
 
@@ -65,13 +65,13 @@ test("viewer cannot create task", async ({ browser, request }) => {
   });
   expect(regRes.status()).toBe(201);
 
-  // 3. alice 将 viewer 添加为 VIEWER 角色
+  // alice adds viewer as a VIEWER role member
   const addRes = await request.post(`/api/workspaces/${wsId}/members`, {
     data: { email: viewerEmail, role: "VIEWER" },
   });
   expect(addRes.status()).toBe(201);
 
-  // 4. viewer 尝试在真实 project 下创建 task → 被 VIEWER 权限拦截返回 403
+  // viewer tries to create a task — VIEWER permission blocks with 403
   const taskRes = await viewerReq.post("/api/tasks", {
     data: { projectId: projId, title: "Should be rejected" },
   });

@@ -1,38 +1,8 @@
 /**
- * 登录页面 — Client Component
+ * Login page — Client Component
  *
- * 你需要实现的表单流程：
- * 1. 收集 email + password
- * 2. POST /api/auth/login
- * 3. 成功 → router.push("/dashboard")
- * 4. 失败 → toast.error 显示错误消息
- *
- * shadcn/ui 组件：Input, Button, Card（居中卡片布局）
- * sonner toast：toast.error("Invalid email or password")
- *
- * API 调用模式：
- *   const res = await fetch("/api/auth/login", {
- *     method: "POST",
- *     headers: { "Content-Type": "application/json" },
- *     body: JSON.stringify({ email, password }),
- *   });
- *   const json = await res.json();
- *   if (!json.success) {
- *     toast.error(json.error?.message);
- *     return;
- *   }
- *   // 登录成功 — json.data 是 UserDTO
- *   router.push("/dashboard");
- *
- * "use client" 指令：
- *   放在文件第一行。标记这是客户端组件，可以使用 useState、useEffect、
- *   事件处理器、浏览器 API。没有这个指令，Next.js 默认服务端渲染。
- *
- * 你参考文档：
- *   - Next.js → Client Components
- *   - shadcn/ui → Card, Input, Button
- *   - sonner → toast
- *   - next/navigation → useRouter
+ * Collects email + password and POSTs to /api/auth/login.
+ * On success redirects to /dashboard; on failure shows toast error.
  */
 
 "use client";
@@ -76,10 +46,9 @@ export default function LoginPage() {
         return;
       }
 
-      // 登录成功 — json.data 包含 { id, name, email }
       toast.success(`Welcome back, ${json.data.name}!`);
       router.push("/dashboard");
-      router.refresh(); // 刷新 layout 中的 session 状态
+      router.refresh(); // re-evaluate session state in layout
     } catch {
       toast.error("Network error. Please try again.");
     } finally {

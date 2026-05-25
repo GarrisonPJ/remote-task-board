@@ -18,7 +18,7 @@ A full-stack task management platform for remote teams — built as a demonstrat
 | UI | **Tailwind CSS v4** + **shadcn/ui** + **@base-ui/react** | Design tokens via CSS variables. Full dark mode. Teal productivity palette. `prefers-reduced-motion` respected. |
 | State (client) | **TanStack React Query v5** | Task list with URL-driven filters/pagination. Cache invalidation on mutations. |
 | Validation | **Zod v4** | Server-side input validation in every Route Handler. Shared schemas with TypeScript type inference. |
-| E2E | **Playwright** | 50 test cases across 5 spec files: core flow, permissions, data isolation, state machine, API security. |
+| E2E | **Playwright** | 26 E2E + 24 unit = 50 total tests across 6 spec files + 3 unit test files. API-level and browser-level coverage for core flow, permissions, data isolation, state machine, comments, and API security. |
 | CI | **GitHub Actions** | Postgres service container → migrate → seed → typecheck → build → Playwright. Every PR. |
 | AI | **OpenAI SDK / DeepSeek** | Optional natural-language task creation. Hidden unless `DEEPSEEK_API_KEY` is configured. No hard dependency. |
 
@@ -89,7 +89,12 @@ MEMBERs can change status **only on tasks they are assigned to**. OWNERs bypass 
 
 | File | Tests | What it covers |
 |---|---|---|
-| `core-flow.spec.ts` | 11 | Register → login → create workspace/project/task → status change. Also validates empty title rejection. |
+| `core-flow.spec.ts` | 6 | Register → login → logout → create workspace/project/task → status change. Also validates empty title rejection and post-logout dashboard protection. |
+| `task-status.spec.ts` | 3 | Every valid transition; invalid transitions (e.g. DONE → TODO) return 400; cancel → reopen. |
+| `permission.spec.ts` | 5 | MEMBER cannot delete others' tasks; VIEWER cannot create tasks; OWNER bypasses delete restriction. Input edge cases (invalid page, large page). |
+| `isolation.spec.ts` | 3 | User A cannot see User B's workspace data, even with a known UUID. Unauthenticated redirect and 401. |
+| `api-security.spec.ts` | 6 | Unauthenticated 401 on protected endpoints. Non-member 404 on workspace-scoped resources. Input validation for empty title, invalid status, bad email. |
+| `comment-flow.spec.ts` | 3 | Comment create + list end-to-end. Empty content rejection. Unauthenticated 401. | → login → create workspace/project/task → status change. Also validates empty title rejection. |
 | `task-status.spec.ts` | 9 | Every valid transition; invalid transitions (e.g. DONE → TODO) return 400. |
 | `permission.spec.ts` | 13 | MEMBER cannot delete others' tasks; VIEWER cannot create tasks. Role enforcement. |
 | `isolation.spec.ts` | 4 | User A cannot see User B's workspace data, even with a known UUID. |
@@ -122,7 +127,7 @@ remote-task-board/
 │   ├── project/            # ProjectCard, CreateDialog
 │   ├── task/               # TaskList, TaskForm, TaskFilters, TaskStatusControl, etc.
 │   └── comment/            # CommentList, CommentForm
-├── lib/                    # Infrastructure: prisma, auth, env, constants, errors, logger
+├── lib/                    # Infrastructure: prisma, auth, env, constants, errors, cookie-options
 ├── services/               # Business logic: auth, workspace, project, task, comment
 ├── schemas/                # Zod input validation schemas
 ├── types/                  # Domain types (DTOs) + API response types
@@ -191,7 +196,7 @@ Key architectural choices and their rationale are documented in:
 - **Full-stack TypeScript:** Server Components, Route Handlers, shared types between frontend and backend
 - **Database modeling:** 7 tables, 3 enums, composite unique keys, cascade deletes, relation filtering
 - **Authentication & security:** Custom session auth, bcrypt, CSRF protection via SameSite cookies, input validation on every endpoint
-- **Testing discipline:** 50 E2E tests covering happy paths, edge cases, permission boundaries, and isolation guarantees
+- **Testing discipline:** 26 E2E tests (6 spec files) + 24 unit tests covering happy paths, edge cases, permission boundaries, and isolation guarantees
 - **CI/CD:** Automated typecheck → build → test pipeline with real PostgreSQL
 - **Clean architecture:** Service layer separated from route handlers, shared constants, mapper functions to decouple Prisma from DTOs
 

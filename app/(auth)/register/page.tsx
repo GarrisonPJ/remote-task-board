@@ -1,10 +1,10 @@
 /**
- * 注册页面 — Client Component
+ * Register page — Client Component
  *
- * 实现模式与登录页面完全相同：
- * - 多一个 name 字段
- * - 调用 POST /api/auth/register
- * - register API 已实现注册即登录（创建 session + 设置 cookie），成功后直接跳转 dashboard
+ * Pattern mirrors the login page:
+ * - Adds a name field
+ * - Calls POST /api/auth/register
+ * - Registration also logs in (creates session + sets cookie), then redirects to dashboard
  */
 
 "use client";

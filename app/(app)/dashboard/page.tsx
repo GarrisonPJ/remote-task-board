@@ -1,23 +1,8 @@
 /**
- * Dashboard 页面 — Server Component
+ * Dashboard page — Server Component
  *
- * Server Component 数据获取模式：
- *   1. async function 直接调用 Service 或 Prisma（不需要 fetch）
- *   2. 数据在服务端获取，渲染后 HTML 传给客户端
- *   3. 没有网络往返开销
- *
- * 你需要展示三块内容：
- * 1. 用户的工作区列表 — 调用 workspaceService.listMyWorkspaces(user.id)
- * 2. 最近的 Task — 调用 taskService.listTasks({ page: 1, pageSize: 5 }, user.id)
- * 3. 最近的 Activity — 可选（需要 ActivityLog 查询）
- *
- * 错误处理：
- *   Server Component 中的错误可以用 error.tsx 文件处理（Next.js error boundary）
- *
- * 你参考文档：
- *   - Next.js → Server Components → Fetching Data
- *   - Next.js → error.tsx（错误边界）
- *   - Next.js → loading.tsx（loading 状态）
+ * Displays workspace list, recent tasks, and task stats.
+ * Data is fetched server-side via service layer (no client fetch needed).
  */
 
 import { getUserFromSession } from "@/lib/auth";

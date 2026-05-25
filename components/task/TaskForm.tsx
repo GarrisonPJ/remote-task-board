@@ -51,7 +51,9 @@ export function TaskForm({ projectId, task, workspaceId, onSuccessAction }: Task
       .then((json) => {
         if (json.success) setMembers(json.data.map((m: { user: MemberOption }) => m.user));
       })
-      .catch(() => {});
+      .catch(() => {
+        // member fetch failure is non-critical; assignee field just won't show
+      });
   }, [workspaceId]);
 
   async function handleSubmit(e: { preventDefault(): void }) {

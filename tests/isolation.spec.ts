@@ -6,7 +6,7 @@ test("user A cannot see user B's workspace", async ({ browser }) => {
   const reqA = ctxA.request;
   const reqB = ctxB.request;
 
-  // 注册用户 A
+  // register user A
   const emailA = `iso-a-${Date.now()}@example.com`;
   await reqA.post("/api/auth/register", {
     data: { name: "Isolation A", email: emailA, password: "password123" },
@@ -15,13 +15,13 @@ test("user A cannot see user B's workspace", async ({ browser }) => {
     data: { email: emailA, password: "password123" },
   });
 
-  // 用户 A 创建 workspace
+  // user A creates a workspace
   const wsA = await reqA.post("/api/workspaces", {
     data: { name: "A's Workspace" },
   });
   expect(wsA.status()).toBe(201);
 
-  // 注册用户 B
+  // register user B
   const emailB = `iso-b-${Date.now()}@example.com`;
   await reqB.post("/api/auth/register", {
     data: { name: "Isolation B", email: emailB, password: "password123" },
@@ -30,7 +30,7 @@ test("user A cannot see user B's workspace", async ({ browser }) => {
     data: { email: emailB, password: "password123" },
   });
 
-  // 用户 B 获取 workspace 列表 — 应该看不到 A 的
+  // user B fetches workspace list — should not see A's workspace
   const listB = await reqB.get("/api/workspaces");
   const listBodyB = await listB.json();
   const namesB = listBodyB.data.map((ws: { name: string }) => ws.name);

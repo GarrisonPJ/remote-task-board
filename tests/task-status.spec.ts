@@ -3,27 +3,27 @@ import { test, expect } from "@playwright/test";
 const FLOW = ["TODO", "IN_PROGRESS", "IN_REVIEW", "DONE"] as const;
 
 test("task can flow through all valid statuses", async ({ request }) => {
-  // 登录
+  // login
   const loginRes = await request.post("/api/auth/login", {
     data: { email: "alice@test.com", password: "password123" },
   });
   expect(loginRes.status()).toBe(200);
 
-  // 找 project
+  // find project
   const wsRes = await request.get("/api/workspaces");
   const wsId = wsRes.ok() ? (await wsRes.json()).data[0].id : null;
 
   const projRes = await request.get(`/api/projects?workspaceId=${wsId}`);
   const projId = projRes.ok() ? (await projRes.json()).data[0].id : null;
 
-  // 创建 task
+  // create task
   const taskRes = await request.post("/api/tasks", {
     data: { projectId: projId, title: "Status flow test" },
   });
   expect(taskRes.status()).toBe(201);
   const taskId = (await taskRes.json()).data.id;
 
-  // 逐步流转
+  // step through valid transitions
   for (const status of FLOW.slice(1)) {
     const res = await request.patch(`/api/tasks/${taskId}/status`, {
       data: { status },
@@ -40,13 +40,13 @@ test("cannot transition DONE directly to TODO", async ({ request }) => {
   });
   expect(loginRes.status()).toBe(200);
 
-  // 找 project
+  // find project
   const wsRes = await request.get("/api/workspaces");
   const wsId = wsRes.ok() ? (await wsRes.json()).data[0].id : null;
   const projRes = await request.get(`/api/projects?workspaceId=${wsId}`);
   const projId = projRes.ok() ? (await projRes.json()).data[0].id : null;
 
-  // 创建 task 并走到 DONE
+  // create task and advance to DONE
   const taskRes = await request.post("/api/tasks", {
     data: { projectId: projId, title: "Illegal transition test" },
   });
@@ -64,7 +64,7 @@ test("cannot transition DONE directly to TODO", async ({ request }) => {
   });
   expect(doneRes.status()).toBe(200);
 
-  // 尝试 DONE → TODO（非法）
+  // attempt DONE → TODO (invalid)
   const illegalRes = await request.patch(`/api/tasks/${taskId}/status`, {
     data: { status: "TODO" },
   });
@@ -79,13 +79,13 @@ test("canceled task can be reopened", async ({ request }) => {
   });
   expect(loginRes.status()).toBe(200);
 
-  // 找 project
+  // find project
   const wsRes = await request.get("/api/workspaces");
   const wsId = wsRes.ok() ? (await wsRes.json()).data[0].id : null;
   const projRes = await request.get(`/api/projects?workspaceId=${wsId}`);
   const projId = projRes.ok() ? (await projRes.json()).data[0].id : null;
 
-  // 创建 task
+  // create task
   const taskRes = await request.post("/api/tasks", {
     data: { projectId: projId, title: "Cancel and reopen" },
   });

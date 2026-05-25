@@ -29,7 +29,6 @@ jobs:
 
     env:
       DATABASE_URL: postgresql://postgres:postgres@localhost:5432/remote_task_board_test
-      AUTH_SECRET: test-secret
 
     steps:
       - uses: actions/checkout@v4
@@ -45,8 +44,8 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
 
-      # 注意：需要先安装 Playwright 浏览器才能 build
-      # （因为测试依赖 import 可能存在）
+      # Playwright browsers must be installed before build
+      # (test imports may reference Playwright types)
       - run: pnpm playwright install --with-deps
 
       - run: pnpm prisma migrate deploy
