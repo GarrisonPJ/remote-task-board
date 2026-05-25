@@ -2,7 +2,19 @@
 
 A full-stack task management platform for remote teams — built as a demonstration of modern TypeScript full-stack engineering.
 
-> **Current status:** Development complete. E2E tested (Playwright), CI pipeline active (GitHub Actions + PostgreSQL service container). Documentation covers architecture, design decisions, and API surface.
+[![CI](https://github.com/GarrisonPJ/remote-task-board/actions/workflows/ci.yml/badge.svg)](https://github.com/GarrisonPJ/remote-task-board/actions/workflows/ci.yml)
+
+> **Live Demo:** [remote-task-board.vercel.app](https://remote-task-board.vercel.app) (deploy your own — see [Getting Started](#getting-started))
+>
+> **Demo Accounts:** `alice@test.com` / `bob@test.com` — password: `password123`
+
+### At a Glance
+
+- **50 tests** (26 E2E + 24 unit) across Playwright and Vitest — full CI run with real PostgreSQL
+- **CI pipeline:** typecheck → build → unit test + coverage → E2E (Postgres service container)
+- **Security:** httpOnly + SameSite=Lax cookies, bcrypt (12 rounds), Zod validation on every endpoint
+- **Architecture:** State machine with transaction atomicity, join-chain data isolation, hybrid RSC + React Query
+- **Data integrity:** Prisma `$transaction` for status changes + activity log, cascade deletes, composite unique keys
 
 ---
 
@@ -19,7 +31,7 @@ A full-stack task management platform for remote teams — built as a demonstrat
 | State (client) | **TanStack React Query v5** | Task list with URL-driven filters/pagination. Cache invalidation on mutations. |
 | Validation | **Zod v4** | Server-side input validation in every Route Handler. Shared schemas with TypeScript type inference. |
 | E2E | **Playwright** | 26 E2E + 24 unit = 50 total tests across 6 spec files + 3 unit test files. API-level and browser-level coverage for core flow, permissions, data isolation, state machine, comments, and API security. |
-| CI | **GitHub Actions** | Postgres service container → migrate → seed → typecheck → build → Playwright. Every PR. |
+| CI | **GitHub Actions** | Postgres service container → migrate → seed → typecheck → build → unit test + coverage → Playwright E2E. Every push and PR. |
 | AI | **OpenAI SDK / DeepSeek** | Optional natural-language task creation. Hidden unless `DEEPSEEK_API_KEY` is configured. No hard dependency. |
 
 ---
@@ -94,16 +106,14 @@ MEMBERs can change status **only on tasks they are assigned to**. OWNERs bypass 
 | `permission.spec.ts` | 5 | MEMBER cannot delete others' tasks; VIEWER cannot create tasks; OWNER bypasses delete restriction. Input edge cases (invalid page, large page). |
 | `isolation.spec.ts` | 3 | User A cannot see User B's workspace data, even with a known UUID. Unauthenticated redirect and 401. |
 | `api-security.spec.ts` | 6 | Unauthenticated 401 on protected endpoints. Non-member 404 on workspace-scoped resources. Input validation for empty title, invalid status, bad email. |
-| `comment-flow.spec.ts` | 3 | Comment create + list end-to-end. Empty content rejection. Unauthenticated 401. | → login → create workspace/project/task → status change. Also validates empty title rejection. |
-| `task-status.spec.ts` | 9 | Every valid transition; invalid transitions (e.g. DONE → TODO) return 400. |
-| `permission.spec.ts` | 13 | MEMBER cannot delete others' tasks; VIEWER cannot create tasks. Role enforcement. |
-| `isolation.spec.ts` | 4 | User A cannot see User B's workspace data, even with a known UUID. |
-| `api-security.spec.ts` | 13 | Unauthenticated requests return 401. Invalid input returns 422. CSRF cookie attributes checked. |
+| `comment-flow.spec.ts` | 3 | Comment create + list end-to-end. Empty content rejection. Unauthenticated 401. |
 
-All tests run against a real PostgreSQL instance via Playwright's `webServer` config and a CI Postgres service container.
+All tests run against a real PostgreSQL instance via Playwright's `webServer` config and a CI Postgres service container. Unit test coverage is collected via Vitest with v8 provider.
 
 ```bash
-pnpm test:e2e
+pnpm test:e2e        # Playwright E2E
+pnpm test:unit       # Vitest unit tests
+pnpm test:coverage   # Vitest with coverage report
 ```
 
 ---
@@ -150,14 +160,8 @@ remote-task-board/
 # 1. Install dependencies
 pnpm install
 
-# 2. Start local PostgreSQL
-docker run -d \
-  --name rtb-postgres \
-  -e POSTGRES_USER=postgres \
-  -e POSTGRES_PASSWORD=postgres \
-  -e POSTGRES_DB=remote_task_board \
-  -p 5432:5432 \
-  postgres:16
+# 2. Start PostgreSQL with Docker Compose
+docker compose up -d
 
 # 3. Copy environment variables
 cp .env.example .env
@@ -170,6 +174,18 @@ pnpm db:seed
 
 # 5. Start dev server
 pnpm dev
+```
+
+Or without Docker Compose:
+
+```bash
+docker run -d \
+  --name rtb-postgres \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_DB=remote_task_board \
+  -p 5432:5432 \
+  postgres:16
 ```
 
 ### Demo Accounts
@@ -185,9 +201,16 @@ pnpm dev
 
 Key architectural choices and their rationale are documented in:
 
+- [`CONTEXT.md`](CONTEXT.md) — Project vision, domain language, constraints, and architecture decision index
 - [`docs/architecture.md`](docs/architecture.md) — Data flow diagrams, auth flow, permission model, state machine, data isolation pattern
 - [`docs/design-decisions.md`](docs/design-decisions.md) — Design system (Teal palette, typography), component enhancement backlog, CSS variable strategy
 - [`docs/api.md`](docs/api.md) — API endpoint reference
+- [`docs/security.md`](docs/security.md) — Security model: session protection, CSRF/XSS defenses, data isolation, known gaps
+- [`docs/production-migration-policy.md`](docs/production-migration-policy.md) — Database migration and seed data strategy across environments
+- [`docs/adr/`](docs/adr/) — Architecture Decision Records:
+  - [ADR 0001 — Custom Session Auth](docs/adr/0001-custom-session-auth.md)
+  - [ADR 0002 — RSC vs React Query Data Fetching](docs/adr/0002-rsc-vs-react-query.md)
+  - [ADR 0003 — Prisma Join-Chain Data Isolation](docs/adr/0003-prisma-join-chain-isolation.md)
 
 ---
 

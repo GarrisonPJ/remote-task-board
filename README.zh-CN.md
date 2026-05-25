@@ -50,13 +50,8 @@
 ```bash
 pnpm install
 
-docker run -d \
-  --name rtb-postgres \
-  -e POSTGRES_USER=postgres \
-  -e POSTGRES_PASSWORD=postgres \
-  -e POSTGRES_DB=remote_task_board \
-  -p 5432:5432 \
-  postgres:16
+# 使用 Docker Compose 一键启动 PostgreSQL
+docker compose up -d
 
 cp .env.example .env
 # 可选：设置 DEEPSEEK_API_KEY 以启用 AI 创建任务
@@ -77,11 +72,19 @@ pnpm dev
 ## 测试
 
 ```bash
-pnpm test:unit
-pnpm test:e2e
+pnpm test:unit        # Vitest 单元测试
+pnpm test:coverage    # Vitest + 覆盖率报告
+pnpm test:e2e         # Playwright E2E
 ```
 
-Playwright 会根据 `playwright.config.ts` 自动启动 Next.js app。CI 使用 PostgreSQL service container，执行迁移、种子数据、typecheck、build 和 E2E。
+Playwright 会根据 `playwright.config.ts` 自动启动 Next.js app。CI 使用 PostgreSQL service container，执行迁移、种子数据、typecheck、build、单元测试+覆盖率和 E2E。
+
+## 文档
+
+- [`CONTEXT.md`](CONTEXT.md) — 项目愿景、领域语言、约束与架构决策索引
+- [`docs/architecture.md`](docs/architecture.md) — 架构细节：数据流、认证、权限、状态机、数据隔离
+- [`docs/security.md`](docs/security.md) — 安全模型：Session 保护、CSRF/XSS 防御、已知缺口
+- [`docs/adr/`](docs/adr/) — 架构决策记录（为什么选 Custom Session、RSC vs React Query、Prisma Join-Chain）
 
 ## 已知不足
 

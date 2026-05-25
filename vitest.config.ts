@@ -9,6 +9,11 @@ export default defineConfig({
     env: {
       DATABASE_URL: "postgresql://localhost:5432/test",
     },
+    coverage: {
+      provider: "v8",
+      include: ["lib/**", "services/**", "schemas/**"],
+      reporter: ["text", "text-summary", "lcov"],
+    },
   },
   resolve: {
     alias: {

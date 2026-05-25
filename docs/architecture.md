@@ -117,7 +117,6 @@ remote-task-board/
 │   ├── constants.ts              # Shared VALID_TRANSITIONS, STATUS_LABELS, permission helpers, type re-exports
 │   ├── cookie-options.ts         # Shared SESSION_COOKIE_OPTIONS used by register/login/logout routes
 │   ├── api-response.ts           # ok() / fail() response builders
-│   ├── logger.ts                 # Structured JSON logger (debug/info/warn/error)
 │   └── utils.ts                  # cn() utility (clsx + tailwind-merge)
 │
 ├── services/                     # Business logic layer (direct Prisma calls)
