@@ -5,7 +5,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "node",
-    include: ["unit-tests/**/*.test.ts"],
+    include: ["unit-tests/**/*.test.{ts,tsx}"],
     env: {
       DATABASE_URL: "postgresql://localhost:5432/test",
     },
@@ -13,6 +13,12 @@ export default defineConfig({
       provider: "v8",
       include: ["lib/**", "services/**", "schemas/**"],
       reporter: ["text", "text-summary", "lcov"],
+      thresholds: {
+        lines: 80,
+        functions: 70,
+        branches: 70,
+        statements: 80,
+      },
     },
   },
   resolve: {

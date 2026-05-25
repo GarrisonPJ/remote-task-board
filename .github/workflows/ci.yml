@@ -59,5 +59,11 @@ jobs:
       - name: Run unit tests with coverage
         run: pnpm test:coverage
 
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: coverage/
+
       - name: Run E2E tests
         run: pnpm test:e2e

@@ -57,8 +57,10 @@ export interface ActivityLogDTO {
   id: string;
   taskId: string;
   actor: UserDTO;
+  action: string;
   fromStatus: TaskStatus | null;
-  toStatus: TaskStatus;
+  toStatus: TaskStatus | null;
+  details: string | null;
   createdAt: string;
 }
 

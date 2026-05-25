@@ -1,20 +1,24 @@
 /**
- * Dashboard page — Server Component
+ * Dashboard page — Server Component with Suspense streaming
  *
- * Displays workspace list, recent tasks, and task stats.
- * Data is fetched server-side via service layer (no client fetch needed).
+ * The static heading renders immediately. Data-fetching content is
+ * wrapped in <Suspense> so the loading skeleton streams in first
+ * and progressively replaces with real data.
  */
 
+import { Suspense } from "react";
 import { getUserFromSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { listMyWorkspaces } from "@/services/workspace.service";
 import { listTasks, getTaskStats } from "@/services/task.service";
 import { WorkspaceCard } from "@/components/workspace/WorkspaceCard";
 import { TaskList } from "@/components/task/TaskList";
+import { TaskActivityFeed } from "@/components/task/TaskActivityFeed";
 import { CreateWorkspaceDialog } from "@/components/workspace/CreateWorkspaceDialog";
 import { FolderKanban, Clock, Search, ListTodo } from "lucide-react";
+import DashboardLoading from "./loading";
 
-export default async function DashboardPage() {
+async function DashboardContent() {
   const user = await getUserFromSession();
   if (!user) redirect("/login");
 
@@ -25,11 +29,8 @@ export default async function DashboardPage() {
   ]);
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground mt-1">Welcome back, {user.name}</p>
-      </div>
+    <>
+      <p className="text-muted-foreground">Welcome back, {user.name}</p>
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         <div className="rounded-xl border bg-card p-5 animate-slide-up hover:border-primary hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 active:scale-95 shadow-sm stagger-1">
@@ -92,6 +93,25 @@ export default async function DashboardPage() {
           <TaskList tasks={recentTasks.items} />
         )}
       </section>
+
+      {workspaces.some((ws) => ws.role === "OWNER") && (
+        <section className="rounded-xl border bg-card p-5 shadow-sm">
+          <TaskActivityFeed />
+        </section>
+      )}
+    </>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-2xl font-bold">Dashboard</h1>
+      </div>
+      <Suspense fallback={<DashboardLoading />}>
+        <DashboardContent />
+      </Suspense>
     </div>
   );
 }

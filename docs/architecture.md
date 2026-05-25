@@ -43,8 +43,11 @@ remote-task-board/
 │   │   ├── layout.tsx            #   AppLayout -- sidebar + header, redirects to /login if unauthenticated
 │   │   ├── loading.tsx           #   Root loading state (suspense boundary)
 │   │   ├── error.tsx             #   Root error boundary (catches Server Component errors)
-│   │   ├── dashboard/
-│   │   │   └── page.tsx          #   Server Component: workspace list + recent tasks
+│   │   │   ├── dashboard/
+│   │   │   ├── page.tsx          #   Server Component: workspace list + recent tasks (Suspense streaming)
+│   │   │   ├── loading.tsx       #   Dashboard skeleton with animate-pulse placeholders
+│   │   │   ├── error.tsx         #   Dashboard error boundary with retry button
+│   │   │   └── not-found.tsx     #   Dashboard not-found page
 │   │   ├── workspaces/
 │   │   │   └── [workspaceId]/
 │   │   │       └── page.tsx      #   Workspace detail: project grid + recent tasks
@@ -80,8 +83,10 @@ remote-task-board/
 │   │   │   ├── route.ts          #   GET (list), POST (create)
 │   │   │   └── [projectId]/
 │   │   │       └── route.ts      #   GET, PATCH, DELETE
+│   │   ├── activity/
+│   │   │   └── route.ts          #   GET (activity feed for OWNER role — last 50 entries)
 │   │   └── tasks/
-│   │       ├── route.ts          #   GET (list with filters+pagination), POST (create)
+│   │       ├── route.ts          #   GET (list with filters+pagination+cursor), POST (create)
 │   │       └── [taskId]/
 │   │           ├── route.ts      #   GET, PATCH (update fields), DELETE
 │   │           └── status/
@@ -107,7 +112,9 @@ remote-task-board/
 │       ├── CreateTaskDialog.tsx  # Wraps TaskForm in a dialog
 │       ├── TaskFilters.tsx       # Filter/search bar (client component, manipulates URL params)
 │       ├── TaskStatusBadge.tsx   # Color-coded status badge
-│       └── TaskPriorityBadge.tsx # Color-coded priority badge
+│       ├── TaskPriorityBadge.tsx # Color-coded priority badge
+│       ├── TaskActivityFeed.tsx  # Activity log feed (OWNER-only, fetches from /api/activity)
+│       └── TaskActivityTimeline.tsx # Per-task activity timeline (supports all action types)
 │
 ├── lib/                          # Infrastructure layer
 │   ├── prisma.ts                 # Singleton PrismaClient with PrismaPg adapter
@@ -117,14 +124,17 @@ remote-task-board/
 │   ├── constants.ts              # Shared VALID_TRANSITIONS, STATUS_LABELS, permission helpers, type re-exports
 │   ├── cookie-options.ts         # Shared SESSION_COOKIE_OPTIONS used by register/login/logout routes
 │   ├── api-response.ts           # ok() / fail() response builders
-│   └── utils.ts                  # cn() utility (clsx + tailwind-merge)
+│   ├── authorization.ts          # Declarative policy map: authorize(action, context) + can(action, context)
+│   ├── utils.ts                  # cn() utility (clsx + tailwind-merge)
+│   └── hooks/
+│       └── use-optimistic-task.ts # React 19 useOptimistic wrapper for instant UI updates (task status)
 │
 ├── services/                     # Business logic layer (direct Prisma calls)
 │   ├── auth.service.ts           # register(), login(), logout(), getCurrentUser()
 │   ├── workspace.service.ts      # createWorkspace, listMyWorkspaces, getWorkspaceById, members, etc.
 │   ├── project.service.ts        # CRUD + permission checks
-│   ├── task.service.ts           # CRUD + status machine + data isolation + activity log
-│   ├── task-list.service.ts      # Paginated/filtered task list queries
+│   ├── task.service.ts           # CRUD + status machine + data isolation + pipeline pattern (executeTaskMutation auto-logs every mutation)
+│   ├── task-list.service.ts      # Paginated/filtered task list queries with dual-mode pagination (offset + cursor)
 │   └── task-mapper.ts            # toTaskDTO() — shared Prisma→DTO mapping (used by task.service + task-list.service)
 │
 ├── schemas/                      # Zod validation schemas
@@ -167,9 +177,9 @@ The application uses two distinct data-fetching patterns depending on whether th
 
 | Scenario | Path | Description |
 |---|---|---|
-| Stable page read (dashboard, workspace, project, task detail) | Server Component --> Service --> Prisma --> PostgreSQL | Data is fetched server-side and rendered into HTML. |
-| Task list read (filters/search/pagination) | Client Component --> React Query --> `GET /api/tasks` --> Service --> Prisma --> PostgreSQL | URL search params drive the interactive task list state. |
-| Write (create/update/delete/comment/AI parse) | Client Component --> `fetch()` to Route Handler --> Service --> Prisma/PostgreSQL or AI provider | Writes require a Route Handler because they need explicit cookie-to-session validation and mutation is not safe in server components. |
+| Stable page read (dashboard, workspace, project, task detail) | Server Component --> Suspense boundary --> inline async component --> Service --> Prisma --> PostgreSQL | Loading skeleton streams immediately via `<Suspense fallback={<Loading />}>`. Data is fetched server-side and rendered into the RSC payload. |
+| Task list read (filters/search/pagination+cursor) | Client Component --> React Query --> `GET /api/tasks` --> Service --> Prisma --> PostgreSQL | URL search params drive the interactive task list state. Supports dual-mode pagination (offset via page/pageSize, cursor via cursor). |
+| Write (create/update/delete/status/comment) | Client Component --> React Query (useMutation with optimistic updates) --> fetch() --> Route Handler --> Service (pipeline) --> Prisma/PostgreSQL | Writes use structured `{ success, data?, error? }` responses. Status changes use optimistic cache updates with automatic rollback on error. ActivityLog entries are created atomically by the service pipeline. |
 | Auth check | Server Component --> `getUserFromSession()` --> `auth.service.getCurrentUser()` --> Prisma | Each protected page reads the session cookie and queries the `Session` table. |
 | Filter / Search | URL search params --> task list client re-query | Filter state lives in the URL query string. Changing a filter updates the URL and the React Query key. |
 
@@ -193,24 +203,39 @@ Browser                    Next.js Server
   |<--- HTML (streamed) --------
 ```
 
-### Write flow (create/update/delete, detailed)
+### Write flow (create/update/delete, detailed with optimistic updates)
 
 ```
 Browser                          Next.js Server
   |                                  |
-  |-- POST /api/tasks               |
-  |   { projectId, title, ... }     |
+  |-- user clicks status change     |
+  |   (e.g. "IN_PROGRESS")          |
+  |                                  |
+  |  Client-side (optimistic):
+  |  1. React Query onMutate fires
+  |     -> cancel outgoing refetches
+  |     -> snapshot current cache
+  |     -> optimistically update cache
+  |     -> UI shows new status instantly
+  |                                  |
+  |-- PATCH /api/tasks/:id/status   |
+  |   { status: "IN_PROGRESS" }     |
   |   (session_id cookie auto-sent) |
   |                                  |
   |                          1. requireUser()
   |                             -> getUserFromSession()
   |                             -> throws UnauthorizedError if null
   |                          2. zod schema.parse(body) -- validate input
-  |                          3. service.createTask(input, user.id)
-  |                             -> check workspace membership
-  |                             -> validate assignee if provided
-  |                             -> prisma.task.create({ ... })
-  |                          4. ok(task, 201) -> NextResponse.json
+  |                          3. service.executeTaskMutation pipeline:
+  |                             -> getTaskWithPermission (join-chain isolation)
+  |                             -> authorize via declarative policy
+  |                             -> execute via Prisma $transaction
+  |                                (task.update + ActivityLog.create)
+  |                          4. ok(task) -> NextResponse.json
+  |                                  |
+  |  Client-side (resolution):
+  |  onSettled -> invalidateQueries(refetch in background)
+  |  onError   -> rollback cache to snapshot + show error toast
   |                                  |
   |<-- { success: true, data: ... } -
 ```
@@ -338,33 +363,35 @@ Every user who belongs to a workspace has a role stored in the `WorkspaceMember`
 | MEMBER | Yes | Yes | No | Yes | Yes | No | Yes | No | Yes | No | No |
 | VIEWER | No | No | No | No | No | No | No | No | No | No | No |
 
-Key permission functions in the codebase (from `lib/constants.ts` and shared across the service layer):
+Key permission functions in the codebase (from `lib/authorization.ts` and `lib/constants.ts`):
+
+The new declarative authorization module (`lib/authorization.ts`) provides a single interface:
 
 ```typescript
-function canCreateTask(role: WorkspaceRole): boolean {
-  return role === "OWNER" || role === "MEMBER";
-}
+import { authorize, can } from "@/lib/authorization";
 
-function canUpdateTask(role: WorkspaceRole): boolean {
-  return role === "OWNER" || role === "MEMBER";
-}
+// Throws ForbiddenError if not permitted
+authorize("task:delete", { role: "MEMBER", isCreator: false });
 
-function canDeleteTask(role: WorkspaceRole, creatorId: string, actorId: string): boolean {
-  if (role === "OWNER") return true;
-  if (role === "MEMBER") return creatorId === actorId;
-  return false;
-}
-
-function canUpdateTaskStatus(role: WorkspaceRole, assigneeId: string | null, actorId: string): boolean {
-  if (role === "OWNER") return true;
-  if (role === "MEMBER" && assigneeId === actorId) return true;
-  return false;
-}
-
-function canManageWorkspace(role: WorkspaceRole): boolean {
-  return role === "OWNER";
-}
+// Returns boolean (no throw)
+can("task:status", { role: "MEMBER", isAssignee: true }); // true
 ```
+
+The policy map uses action identifiers mapped to role-based conditions:
+
+| Action | Who can do it |
+|--------|---------------|
+| `task:create` | OWNER or MEMBER |
+| `task:update` | OWNER or MEMBER |
+| `task:delete` | OWNER, or MEMBER who is the creator |
+| `task:status` | OWNER, or MEMBER who is the assignee |
+| `comment:create` | OWNER or MEMBER |
+| `workspace:manage` | OWNER only |
+| `member:invite` | OWNER only |
+| `member:remove` | OWNER only |
+| `activity:view` | OWNER only |
+
+Legacy inline helpers in `lib/constants.ts` remain for backward compatibility.
 
 ### Layer 2: Task-level Permissions
 

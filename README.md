@@ -3,6 +3,8 @@
 A full-stack task management platform for remote teams — built as a demonstration of modern TypeScript full-stack engineering.
 
 [![CI](https://github.com/GarrisonPJ/remote-task-board/actions/workflows/ci.yml/badge.svg)](https://github.com/GarrisonPJ/remote-task-board/actions/workflows/ci.yml)
+[![Coverage](https://img.shields.io/badge/coverage-80%25-brightgreen)]()
+[![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)]()
 
 > **Live Demo:** [remote-task-board.vercel.app](https://remote-task-board.vercel.app) (deploy your own — see [Getting Started](#getting-started))
 >
@@ -211,6 +213,9 @@ Key architectural choices and their rationale are documented in:
   - [ADR 0001 — Custom Session Auth](docs/adr/0001-custom-session-auth.md)
   - [ADR 0002 — RSC vs React Query Data Fetching](docs/adr/0002-rsc-vs-react-query.md)
   - [ADR 0003 — Prisma Join-Chain Data Isolation](docs/adr/0003-prisma-join-chain-isolation.md)
+  - [ADR 0004 — Route Handlers over Server Actions](docs/adr/0004-route-handlers-over-server-actions.md)
+  - [ADR 0005 — No Real-Time WebSocket Sync](docs/adr/0005-no-real-time-websocket.md)
+  - [ADR 0006 — Last-Write-Wins over CRDT](docs/adr/0006-last-write-wins-over-crdt.md)
 
 ---
 

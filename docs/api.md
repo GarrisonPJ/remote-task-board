@@ -1002,6 +1002,45 @@ Create a task comment.
 
 ---
 
+## Activity
+
+### GET /api/activity
+
+Return the 50 most recent activity log entries across all workspaces the authenticated user belongs to.
+
+**Auth:** Required (OWNER role — only OWNERs can view activity logs)
+
+**Success Response** `200 OK`:
+
+```json
+{
+  "success": true,
+  "data": [
+    {
+      "id": "log1abcdef123",
+      "taskId": "task1abcdef123",
+      "taskTitle": "Fix login bug",
+      "actor": {
+        "id": "cm7abcdef123",
+        "name": "Alice",
+        "email": "alice@example.com"
+      },
+      "action": "STATUS_CHANGED",
+      "fromStatus": "TODO",
+      "toStatus": "IN_PROGRESS",
+      "details": null,
+      "createdAt": "2025-01-23T09:00:00.000Z"
+    }
+  ]
+}
+```
+
+`action` can be `"CREATED"`, `"UPDATED"`, `"DELETED"`, or `"STATUS_CHANGED"`. Deleted task entries return `taskTitle` but no link.
+
+**Error Codes:** `UNAUTHORIZED` (401), `INTERNAL_SERVER_ERROR` (500)
+
+---
+
 ## AI
 
 ### POST /api/ai/parse-task

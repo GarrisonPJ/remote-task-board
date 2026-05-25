@@ -23,5 +23,6 @@ export type PaginationMeta = {
 
 export type PaginatedResponse<T> = {
   items: T[];
+  nextCursor?: string | null;
   meta: PaginationMeta;
 };

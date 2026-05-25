@@ -18,7 +18,7 @@ import type {
   UpdateTaskInput,
   UpdateTaskStatusInput,
 } from "@/schemas/task.schema";
-import type { WorkspaceRole } from "@/lib/constants";
+import type { WorkspaceRole, TaskStatus } from "@/lib/constants";
 import type { TaskDTO, TaskStats, TaskDetailResult } from "@/types/domain";
 import { toTaskDTO } from "./task-mapper";
 
@@ -139,6 +139,69 @@ function parseDueDateInput(dueDate: string | null | undefined): Date | null | un
 }
 
 // ============================================================
+// Internal mutation pipeline
+// ============================================================
+
+type TaskContext = {
+  task: any;
+  role: WorkspaceRole;
+};
+
+type MutationDescriptor<TInput, TResult> = {
+  input: TInput;
+  actorId: string;
+  taskId?: string;
+  projectId?: string;
+  authorize: (ctx: TaskContext) => void;
+  execute: (ctx: TaskContext) => Promise<TResult>;
+};
+
+/**
+ * Shared pipeline for all task mutations.
+ * 1. Resolves the TaskContext (task + role) from taskId or projectId.
+ * 2. Runs the authorization check.
+ * 3. Runs the actual mutation.
+ */
+async function executeTaskMutation<TInput, TResult>(
+  desc: MutationDescriptor<TInput, TResult>
+): Promise<TResult> {
+  let ctx: TaskContext;
+
+  if (desc.taskId) {
+    ctx = await getTaskWithPermission(desc.taskId, desc.actorId);
+  } else if (desc.projectId) {
+    const project = await prisma.project.findUnique({
+      where: { id: desc.projectId },
+      include: {
+        workspace: {
+          include: {
+            members: {
+              where: { userId: desc.actorId },
+              select: { role: true },
+            },
+          },
+        },
+      },
+    });
+
+    if (!project) throw new NotFoundError("Project");
+    const member = project.workspace.members[0];
+    if (!member) throw new NotFoundError("Project");
+
+    ctx = { task: null as any, role: member.role as WorkspaceRole };
+  } else {
+    throw new AppError(
+      "INVALID_PIPELINE",
+      "Either taskId or projectId is required for a mutation.",
+      500
+    );
+  }
+
+  desc.authorize(ctx);
+  return desc.execute(ctx);
+}
+
+// ============================================================
 // createTask
 // ============================================================
 
@@ -147,51 +210,53 @@ export async function createTask(
   input: CreateTaskInput,
   actorId: string
 ): Promise<TaskDTO> {
-  const project = await prisma.project.findUnique({
-    where: { id: input.projectId },
-    include: {
-      workspace: {
-        include: {
-          members: {
-            where: { userId: actorId },
-            select: { role: true },
+  return executeTaskMutation({
+    input,
+    actorId,
+    projectId: input.projectId,
+    authorize: ({ role }) => {
+      if (!canCreateTask(role)) throw new ForbiddenError();
+    },
+    execute: async () => {
+      // Validate assignee is a member of the same workspace.
+      if (input.assigneeId) {
+        await validateAssigneeInWorkspace(input.projectId, input.assigneeId);
+      }
+
+      return prisma.$transaction(async (tx) => {
+        // creatorId is injected from the authenticated actor, never from the client.
+        const task = await tx.task.create({
+          data: {
+            projectId: input.projectId,
+            title: input.title,
+            description: input.description,
+            priority: input.priority ?? "MEDIUM",
+            assigneeId: input.assigneeId ?? null,
+            dueDate: parseDueDateInput(input.dueDate) ?? null,
+            creatorId: actorId,
+            status: "TODO",
           },
-        },
-      },
+          include: {
+            assignee: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+        });
+
+        await tx.activityLog.create({
+          data: {
+            taskId: task.id,
+            actorId,
+            action: "CREATED",
+            toStatus: "TODO",
+            details: JSON.stringify({ title: task.title }),
+          },
+        });
+
+        return toTaskDTO(task);
+      });
     },
   });
-
-  if (!project) throw new NotFoundError("Project");
-
-  const member = project.workspace.members[0];
-  if (!member) throw new NotFoundError("Project");
-  if (!canCreateTask(member.role)) throw new ForbiddenError();
-
-  // Validate assignee is a member of the same workspace.
-  if (input.assigneeId) {
-    await validateAssigneeInWorkspace(input.projectId, input.assigneeId);
-  }
-
-  // creatorId is injected from the authenticated actor, never from the client.
-  const task = await prisma.task.create({
-    data: {
-      projectId: input.projectId,
-      title: input.title,
-      description: input.description,
-      priority: input.priority ?? "MEDIUM",
-      assigneeId: input.assigneeId ?? null,
-      dueDate: parseDueDateInput(input.dueDate) ?? null,
-      creatorId: actorId,
-      status: "TODO",
-    },
-    include: {
-      assignee: {
-        select: { id: true, name: true, email: true },
-      },
-    },
-  });
-
-  return toTaskDTO(task);
 }
 
 // ============================================================
@@ -207,45 +272,52 @@ export async function updateTaskStatus(
   input: UpdateTaskStatusInput,
   actorId: string
 ): Promise<TaskDTO> {
-  const { task, role } = await getTaskWithPermission(taskId, actorId);
+  return executeTaskMutation({
+    input,
+    actorId,
+    taskId,
+    authorize: (ctx) => {
+      // Validate state transition
+      const validTargets = VALID_TRANSITIONS[ctx.task.status as TaskStatus];
+      if (!validTargets.includes(input.status)) {
+        throw new AppError(
+          "INVALID_TRANSITION",
+          `Cannot transition from ${ctx.task.status} to ${input.status}. Valid transitions: ${validTargets.join(", ")}`,
+          400
+        );
+      }
 
-  // Validate state transition
-  const validTargets = VALID_TRANSITIONS[task.status];
-  if (!validTargets.includes(input.status)) {
-    throw new AppError(
-      "INVALID_TRANSITION",
-      `Cannot transition from ${task.status} to ${input.status}. Valid transitions: ${validTargets.join(", ")}`,
-      400
-    );
-  }
+      // Permission: OWNER is all-powerful, MEMBER must be the assignee.
+      if (!canUpdateTaskStatus(ctx.role, ctx.task.assigneeId, actorId)) {
+        throw new ForbiddenError();
+      }
+    },
+    execute: async (ctx) => {
+      // Atomic transaction: update status + write ActivityLog as a single unit.
+      const [updatedTask] = await prisma.$transaction([
+        prisma.task.update({
+          where: { id: taskId },
+          data: { status: input.status },
+          include: {
+            assignee: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+        }),
+        prisma.activityLog.create({
+          data: {
+            taskId,
+            actorId,
+            action: "STATUS_CHANGED",
+            fromStatus: ctx.task.status,
+            toStatus: input.status,
+          },
+        }),
+      ]);
 
-  // Permission: OWNER is all-powerful, MEMBER must be the assignee.
-  if (!canUpdateTaskStatus(role, task.assigneeId, actorId)) {
-    throw new ForbiddenError();
-  }
-
-  // Atomic transaction: update status + write ActivityLog as a single unit.
-  const [updatedTask] = await prisma.$transaction([
-    prisma.task.update({
-      where: { id: taskId },
-      data: { status: input.status },
-      include: {
-        assignee: {
-          select: { id: true, name: true, email: true },
-        },
-      },
-    }),
-    prisma.activityLog.create({
-      data: {
-        taskId,
-        actorId,
-        fromStatus: task.status,
-        toStatus: input.status,
-      },
-    }),
-  ]);
-
-  return toTaskDTO(updatedTask);
+      return toTaskDTO(updatedTask);
+    },
+  });
 }
 
 // ============================================================
@@ -305,32 +377,72 @@ export async function updateTask(
   input: UpdateTaskInput,
   actorId: string
 ): Promise<TaskDTO> {
-  const { task, role } = await getTaskWithPermission(taskId, actorId);
-
-  if (!canUpdateTask(role)) throw new ForbiddenError();
-
-  // If changing assignee, verify the new assignee is in the workspace.
-  if (input.assigneeId) {
-    await validateAssigneeInWorkspace(task.projectId, input.assigneeId);
-  }
-
-  const updated = await prisma.task.update({
-    where: { id: taskId },
-    data: {
-      title: input.title,
-      description: input.description,
-      priority: input.priority,
-      assigneeId: input.assigneeId,
-      dueDate: parseDueDateInput(input.dueDate),
+  return executeTaskMutation({
+    input,
+    actorId,
+    taskId,
+    authorize: ({ role }) => {
+      if (!canUpdateTask(role)) throw new ForbiddenError();
     },
-    include: {
-      assignee: {
-        select: { id: true, name: true, email: true },
-      },
+    execute: async (ctx) => {
+      // If changing assignee, verify the new assignee is in the workspace.
+      if (input.assigneeId) {
+        await validateAssigneeInWorkspace(ctx.task.projectId, input.assigneeId);
+      }
+
+      return prisma.$transaction(async (tx) => {
+        const updated = await tx.task.update({
+          where: { id: taskId },
+          data: {
+            title: input.title,
+            description: input.description,
+            priority: input.priority,
+            assigneeId: input.assigneeId,
+            dueDate: parseDueDateInput(input.dueDate),
+          },
+          include: {
+            assignee: {
+              select: { id: true, name: true, email: true },
+            },
+          },
+        });
+
+        const changes: Record<string, unknown> = {};
+        if (input.title !== undefined && input.title !== ctx.task.title) {
+          changes.title = input.title;
+        }
+        if (
+          input.description !== undefined &&
+          input.description !== ctx.task.description
+        ) {
+          changes.description = input.description;
+        }
+        if (input.priority !== undefined && input.priority !== ctx.task.priority) {
+          changes.priority = input.priority;
+        }
+        if (
+          input.assigneeId !== undefined &&
+          input.assigneeId !== ctx.task.assigneeId
+        ) {
+          changes.assigneeId = input.assigneeId;
+        }
+
+        await tx.activityLog.create({
+          data: {
+            taskId,
+            actorId,
+            action: "UPDATED",
+            details:
+              Object.keys(changes).length > 0
+                ? JSON.stringify(changes)
+                : null,
+          },
+        });
+
+        return toTaskDTO(updated);
+      });
     },
   });
-
-  return toTaskDTO(updated);
 }
 
 // ============================================================
@@ -341,10 +453,26 @@ export async function deleteTask(
   taskId: string,
   actorId: string
 ): Promise<void> {
-  const { task, role } = await getTaskWithPermission(taskId, actorId);
-
-  if (!canDeleteTask(role, task.creatorId, actorId)) throw new ForbiddenError();
-
-  // ActivityLogs are cascade-deleted by Prisma onDelete: Cascade.
-  await prisma.task.delete({ where: { id: taskId } });
+  return executeTaskMutation({
+    input: undefined,
+    actorId,
+    taskId,
+    authorize: (ctx) => {
+      if (!canDeleteTask(ctx.role, ctx.task.creatorId, actorId))
+        throw new ForbiddenError();
+    },
+    execute: async (ctx) => {
+      await prisma.$transaction(async (tx) => {
+        await tx.activityLog.create({
+          data: {
+            taskId,
+            actorId,
+            action: "DELETED",
+            details: JSON.stringify({ title: ctx.task.title }),
+          },
+        });
+        await tx.task.delete({ where: { id: taskId } });
+      });
+    },
+  });
 }

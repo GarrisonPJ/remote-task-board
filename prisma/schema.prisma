@@ -99,8 +99,10 @@ model ActivityLog {
   id         String     @id @default(cuid())
   taskId     String
   actorId    String
+  action     String     @default("STATUS_CHANGED")
   fromStatus TaskStatus?
-  toStatus   TaskStatus
+  toStatus   TaskStatus?
+  details    String?
 
   task  Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
   actor User @relation(fields: [actorId], references: [id], onDelete: Cascade)
@@ -108,6 +110,7 @@ model ActivityLog {
   createdAt DateTime @default(now())
 
   @@index([taskId, createdAt])
+  @@index([actorId, createdAt])
 }
 
 model Comment {

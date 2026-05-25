@@ -6,6 +6,22 @@ type Props = {
   logs: ActivityLogDTO[];
 };
 
+function StatusBadge({
+  label,
+  variant,
+}: {
+  label: string;
+  variant: "primary" | "secondary";
+}) {
+  const baseClass =
+    "inline-block px-1.5 py-0.5 text-xs rounded border";
+  const variantClass =
+    variant === "primary"
+      ? "bg-primary/10 text-primary border-primary/20"
+      : "bg-secondary text-secondary-foreground border-border";
+  return <span className={`${baseClass} ${variantClass}`}>{label}</span>;
+}
+
 export function TaskActivityTimeline({ logs }: Props) {
   if (!logs || logs.length === 0) return null;
 
@@ -27,28 +43,8 @@ export function TaskActivityTimeline({ logs }: Props) {
             </div>
             <div className="pb-4">
               <p className="leading-snug">
-                <span className="font-medium">{log.actor.name}</span>
-                {log.fromStatus ? (
-                  <span>
-                    {" "}
-                    changed status from{" "}
-                    <span className="inline-block px-1.5 py-0.5 text-xs rounded border bg-secondary text-secondary-foreground">
-                      {STATUS_LABELS[log.fromStatus] || log.fromStatus}
-                    </span>{" "}
-                    to{" "}
-                    <span className="inline-block px-1.5 py-0.5 text-xs rounded border bg-primary/10 text-primary">
-                      {STATUS_LABELS[log.toStatus] || log.toStatus}
-                    </span>
-                  </span>
-                ) : (
-                  <span>
-                    {" "}
-                    set status to{" "}
-                    <span className="inline-block px-1.5 py-0.5 text-xs rounded border bg-primary/10 text-primary">
-                      {STATUS_LABELS[log.toStatus] || log.toStatus}
-                    </span>
-                  </span>
-                )}
+                <span className="font-medium">{log.actor.name}</span>{" "}
+                {renderLogAction(log)}
               </p>
               <p className="text-xs text-muted-foreground mt-0.5">
                 {formatRelativeTime(log.createdAt)}
@@ -59,4 +55,39 @@ export function TaskActivityTimeline({ logs }: Props) {
       </div>
     </section>
   );
+}
+
+function renderLogAction(log: ActivityLogDTO) {
+  switch (log.action) {
+    case "CREATED":
+      return <span>created this task</span>;
+    case "UPDATED":
+      return <span>updated this task</span>;
+    case "DELETED":
+      return <span>deleted this task</span>;
+    case "STATUS_CHANGED":
+    default:
+      return log.fromStatus ? (
+        <span>
+          changed status from{" "}
+          <StatusBadge
+            label={STATUS_LABELS[log.fromStatus] || log.fromStatus}
+            variant="secondary"
+          />{" "}
+          to{" "}
+          <StatusBadge
+            label={STATUS_LABELS[log.toStatus ?? ""] || log.toStatus || ""}
+            variant="primary"
+          />
+        </span>
+      ) : (
+        <span>
+          set status to{" "}
+          <StatusBadge
+            label={STATUS_LABELS[log.toStatus ?? ""] || log.toStatus || ""}
+            variant="primary"
+          />
+        </span>
+      );
+  }
 }

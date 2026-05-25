@@ -3,7 +3,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Spinner } from "@/components/ui/spinner";
 import { VALID_TRANSITIONS, canUpdateTaskStatus, STATUS_LABELS } from "@/lib/constants";
 import type { WorkspaceRole, TaskStatus } from "@/lib/constants";
 
@@ -29,12 +28,44 @@ export function TaskStatusControl({ taskId, currentStatus, userId, assigneeId, u
       if (!json.success) throw new Error(json.error?.message ?? "Failed to update status");
       return json.data;
     },
-    onSuccess: (_data, newStatus) => {
-      toast.success(`Status changed to ${STATUS_LABELS[newStatus]}`);
-      queryClient.invalidateQueries({ queryKey: ["tasks"] });
+    onMutate: async (newStatus) => {
+      // Cancel outgoing refetches to prevent overwriting optimistic update
+      await queryClient.cancelQueries({ queryKey: ["tasks"] });
+
+      // Snapshot previous data for rollback
+      const previousQueries = queryClient.getQueriesData({ queryKey: ["tasks"] });
+
+      // Optimistically update all task list caches
+      queryClient.setQueriesData({ queryKey: ["tasks"] }, (old: unknown) => {
+        if (!old || typeof old !== "object") return old;
+
+        // Handle PaginatedResponse shape: { items: TaskDTO[], meta: ... }
+        if ("items" in old && Array.isArray((old as Record<string, unknown>).items)) {
+          return {
+            ...old,
+            items: (old as { items: Array<Record<string, unknown>> }).items.map((t) =>
+              t.id === taskId ? { ...t, status: newStatus } : t,
+            ),
+          };
+        }
+
+        return old;
+      });
+
+      return { previousQueries };
     },
-    onError: (err: Error) => {
+    onError: (err: Error, _newStatus, context) => {
+      // Rollback on failure
+      if (context?.previousQueries) {
+        for (const [key, data] of context.previousQueries) {
+          queryClient.setQueryData(key, data);
+        }
+      }
       toast.error(err.message);
+    },
+    onSettled: () => {
+      // Refetch to ensure consistency with server
+      queryClient.invalidateQueries({ queryKey: ["tasks"] });
     },
   });
 
@@ -60,7 +91,7 @@ export function TaskStatusControl({ taskId, currentStatus, userId, assigneeId, u
           disabled={statusMutation.isPending}
           onClick={() => handleChange(target)}
         >
-          {statusMutation.isPending && statusMutation.variables === target ? <><Spinner className="h-3.5 w-3.5" /> {STATUS_LABELS[target]}</> : STATUS_LABELS[target]}
+          {STATUS_LABELS[target]}
         </Button>
       ))}
     </div>

@@ -16,8 +16,10 @@ export type PrismaTaskRow = {
     id: string;
     taskId: string;
     actor: { id: string; name: string; email: string };
+    action: string;
     fromStatus: string | null;
-    toStatus: string;
+    toStatus: string | null;
+    details: string | null;
     createdAt: Date;
   }>;
 };
@@ -37,8 +39,10 @@ export function toTaskDTO(t: PrismaTaskRow): TaskDTO {
       id: log.id,
       taskId: log.taskId,
       actor: log.actor,
+      action: log.action,
       fromStatus: log.fromStatus as TaskDTO["status"] | null,
-      toStatus: log.toStatus as TaskDTO["status"],
+      toStatus: log.toStatus as TaskDTO["status"] | null,
+      details: log.details,
       createdAt: log.createdAt.toISOString(),
     })),
     createdAt: t.createdAt.toISOString(),
