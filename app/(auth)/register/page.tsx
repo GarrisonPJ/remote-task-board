@@ -70,7 +70,7 @@ export default function RegisterPage() {
           <CardTitle className="text-xl">Create Account</CardTitle>
           <p className="text-sm text-muted-foreground mt-1">Join Remote Task Board</p>
         </CardHeader>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="space-y-6">
           <CardContent className="space-y-4">
             <div>
               <label htmlFor="name" className="text-sm font-medium">

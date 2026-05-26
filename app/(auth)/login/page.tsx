@@ -68,7 +68,7 @@ export default function LoginPage() {
           <CardTitle className="text-xl">Remote Task Board</CardTitle>
           <p className="text-sm text-muted-foreground mt-1">Sign in to your account</p>
         </CardHeader>
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="space-y-6">
           <CardContent className="space-y-4">
             <div>
               <label htmlFor="email" className="text-sm font-medium">
