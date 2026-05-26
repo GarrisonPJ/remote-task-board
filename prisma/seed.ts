@@ -7,10 +7,11 @@ const prisma = new PrismaClient({
 });
 
 async function main() {
-  console.log("Seeding database...");
+  console.log("Seeding database with rich dataset...");
 
   // 清理旧数据（按外键顺序）
   await prisma.activityLog.deleteMany();
+  await prisma.comment.deleteMany();
   await prisma.task.deleteMany();
   await prisma.project.deleteMany();
   await prisma.workspaceMember.deleteMany();
@@ -18,122 +19,94 @@ async function main() {
   await prisma.session.deleteMany();
   await prisma.user.deleteMany();
 
-  // 创建用户
   const passwordHash = await bcrypt.hash("password123", 12);
 
-  const alice = await prisma.user.create({
-    data: { name: "Alice", email: "alice@test.com", passwordHash },
-  });
-  const bob = await prisma.user.create({
-    data: { name: "Bob", email: "bob@test.com", passwordHash },
-  });
-  console.log("  Users created: alice@test.com, bob@test.com");
+  // 1. 创建四位用户
+  const alice = await prisma.user.create({ data: { name: "Alice (Owner WS1)", email: "alice@test.com", passwordHash } });
+  const bob = await prisma.user.create({ data: { name: "Bob (Owner WS2)", email: "bob@test.com", passwordHash } });
+  const charlie = await prisma.user.create({ data: { name: "Charlie (Member)", email: "charlie@test.com", passwordHash } });
+  const dave = await prisma.user.create({ data: { name: "Dave (Viewer)", email: "dave@test.com", passwordHash } });
+  console.log("  Users created: Alice, Bob, Charlie, Dave");
 
-  // 创建工作区
-  const workspace = await prisma.workspace.create({
-    data: { name: "Alice's Workspace" },
-  });
+  // 2. 创建两个工作区
+  const ws1 = await prisma.workspace.create({ data: { name: "Tech Startup WS" } });
+  const ws2 = await prisma.workspace.create({ data: { name: "Design Studio WS" } });
 
-  // 添加成员
-  await prisma.workspaceMember.create({
-    data: { workspaceId: workspace.id, userId: alice.id, role: "OWNER" },
-  });
-  await prisma.workspaceMember.create({
-    data: { workspaceId: workspace.id, userId: bob.id, role: "MEMBER" },
-  });
-  console.log("  Workspace created with alice (OWNER) and bob (MEMBER)");
-
-  // 创建项目
-  const project = await prisma.project.create({
-    data: {
-      workspaceId: workspace.id,
-      name: "MVP Features",
-      description: "Core features for the initial product launch.",
-    },
+  // 3. 分配 Workspace 1 成员 (Owner: Alice, Members: Bob, Charlie, Viewer: Dave)
+  await prisma.workspaceMember.createMany({
+    data: [
+      { workspaceId: ws1.id, userId: alice.id, role: "OWNER" },
+      { workspaceId: ws1.id, userId: bob.id, role: "MEMBER" },
+      { workspaceId: ws1.id, userId: charlie.id, role: "MEMBER" },
+      { workspaceId: ws1.id, userId: dave.id, role: "VIEWER" },
+    ]
   });
 
-  const project2 = await prisma.project.create({
-    data: {
-      workspaceId: workspace.id,
-      name: "Bug Fixes",
-      description: "Reported issues that need attention.",
-    },
+  // 4. 分配 Workspace 2 成员 (Owner: Bob, Members: Alice, Charlie, Viewer: Dave)
+  await prisma.workspaceMember.createMany({
+    data: [
+      { workspaceId: ws2.id, userId: bob.id, role: "OWNER" },
+      { workspaceId: ws2.id, userId: alice.id, role: "MEMBER" },
+      { workspaceId: ws2.id, userId: charlie.id, role: "MEMBER" },
+      { workspaceId: ws2.id, userId: dave.id, role: "VIEWER" },
+    ]
   });
-  console.log("  Projects created: MVP Features, Bug Fixes");
+  console.log("  Workspaces created and roles assigned.");
 
-  // 创建任务（不同状态）
-  await prisma.task.create({
-    data: {
-      projectId: project.id,
-      title: "Set up CI/CD pipeline",
-      description: "Configure GitHub Actions for automated testing and deployment.",
-      status: "DONE",
-      priority: "HIGH",
-      creatorId: alice.id,
-      assigneeId: alice.id,
-    },
+  // 5. 创建 3 个项目 (WS1: 2个, WS2: 1个)
+  const proj1 = await prisma.project.create({ data: { workspaceId: ws1.id, name: "V1.0 Launch", description: "Core feature rollout" } });
+  const proj2 = await prisma.project.create({ data: { workspaceId: ws1.id, name: "Marketing Campaign", description: "Q3 Social Media push" } });
+  const proj3 = await prisma.project.create({ data: { workspaceId: ws2.id, name: "Brand Redesign", description: "New logo and UI kit" } });
+
+  // 6. 创建任务 (Task) 并在其中添加评论 (Comments)
+  // --- Project 1 Tasks ---
+  const task1 = await prisma.task.create({
+    data: { projectId: proj1.id, title: "Database Migration", description: "Migrate to Supabase PostgreSQL", status: "DONE", priority: "URGENT", creatorId: alice.id, assigneeId: charlie.id },
   });
-
-  await prisma.task.create({
-    data: {
-      projectId: project.id,
-      title: "Implement user authentication",
-      description: "Add login and registration with session management.",
-      status: "IN_REVIEW",
-      priority: "URGENT",
-      creatorId: alice.id,
-      assigneeId: bob.id,
-    },
+  await prisma.comment.createMany({
+    data: [
+      { taskId: task1.id, userId: alice.id, content: "Charlie, please make sure to backup before migrating." },
+      { taskId: task1.id, userId: charlie.id, content: "Backup completed! Migration took 5 seconds." },
+    ]
   });
 
-  await prisma.task.create({
-    data: {
-      projectId: project.id,
-      title: "Design dashboard layout",
-      description: "Create the main dashboard page with workspace overview.",
-      status: "IN_PROGRESS",
-      priority: "MEDIUM",
-      creatorId: bob.id,
-      assigneeId: alice.id,
-    },
+  const task2 = await prisma.task.create({
+    data: { projectId: proj1.id, title: "Setup WebSockets", description: "Use Pusher for real-time sync", status: "IN_REVIEW", priority: "HIGH", creatorId: alice.id, assigneeId: bob.id },
+  });
+  await prisma.comment.createMany({
+    data: [
+      { taskId: task2.id, userId: bob.id, content: "PR is up. Check out the Pusher integration." },
+      { taskId: task2.id, userId: dave.id, content: "Looking good from my end (Viewer passing by 👋)" },
+    ]
   });
 
-  await prisma.task.create({
-    data: {
-      projectId: project.id,
-      title: "Add dark mode support",
-      description: "Implement theme switching with Tailwind CSS dark mode.",
-      status: "TODO",
-      priority: "LOW",
-      creatorId: alice.id,
-    },
+  // --- Project 2 Tasks ---
+  const task3 = await prisma.task.create({
+    data: { projectId: proj2.id, title: "Write Press Release", description: "Draft the PR for TechCrunch", status: "IN_PROGRESS", priority: "MEDIUM", creatorId: bob.id, assigneeId: alice.id },
+  });
+  await prisma.comment.create({ data: { taskId: task3.id, userId: alice.id, content: "I'll need some bullet points from the product team." } });
+
+  const task4 = await prisma.task.create({
+    data: { projectId: proj2.id, title: "Design Ad Banners", status: "TODO", priority: "LOW", creatorId: charlie.id },
   });
 
-  await prisma.task.create({
-    data: {
-      projectId: project2.id,
-      title: "Fix login redirect issue",
-      description: "Users are not redirected to dashboard after login on slow connections.",
-      status: "IN_PROGRESS",
-      priority: "HIGH",
-      creatorId: alice.id,
-      assigneeId: bob.id,
-    },
+  // --- Project 3 Tasks (Design Studio) ---
+  const task5 = await prisma.task.create({
+    data: { projectId: proj3.id, title: "New Logo Concepts", description: "Explore 3 directions for the new logo", status: "IN_PROGRESS", priority: "HIGH", creatorId: bob.id, assigneeId: charlie.id },
+  });
+  await prisma.comment.createMany({
+    data: [
+      { taskId: task5.id, userId: charlie.id, content: "Uploading the first draft to Figma now." },
+      { taskId: task5.id, userId: bob.id, content: "Great! Let's review it in tomorrow's sync." },
+    ]
   });
 
-  await prisma.task.create({
-    data: {
-      projectId: project2.id,
-      title: "Task status not updating",
-      description: "Status change returns 200 but UI does not reflect the change.",
-      status: "TODO",
-      priority: "URGENT",
-      creatorId: bob.id,
-    },
+  const task6 = await prisma.task.create({
+    data: { projectId: proj3.id, title: "UI Kit Finalization", status: "TODO", priority: "MEDIUM", creatorId: bob.id, assigneeId: alice.id },
   });
-  console.log("  Tasks created: 6 tasks across 2 projects");
 
-  console.log("Seed complete.");
+  console.log("  Tasks and Comments successfully seeded!");
+  console.log("Seed complete. You can now login with any of the users (password: password123)");
 }
 
 main()
