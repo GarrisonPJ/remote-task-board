@@ -14,12 +14,11 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-type TaskDeleteButtonProps = {
-  taskId: string;
-  redirectUrl?: string;
+type WorkspaceDeleteButtonProps = {
+  workspaceId: string;
 };
 
-export function TaskDeleteButton({ taskId, redirectUrl }: TaskDeleteButtonProps) {
+export function WorkspaceDeleteButton({ workspaceId }: WorkspaceDeleteButtonProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -28,20 +27,21 @@ export function TaskDeleteButton({ taskId, redirectUrl }: TaskDeleteButtonProps)
     setIsDeleting(true);
 
     try {
-      const res = await fetch(`/api/tasks/${taskId}`, {
+      const res = await fetch(`/api/workspaces/${workspaceId}`, {
         method: "DELETE",
       });
 
       const json = await res.json();
 
       if (!json.success) {
-        toast.error(json.error?.message ?? "Failed to delete task");
+        toast.error(json.error?.message ?? "Failed to delete workspace");
         return;
       }
 
-      toast.success("Task deleted!");
+      toast.success("Workspace deleted!");
       setIsOpen(false);
-      router.push(redirectUrl || "/dashboard");
+      router.push("/dashboard");
+      router.refresh();
     } catch {
       toast.error("Network error. Please try again.");
     } finally {
@@ -51,14 +51,14 @@ export function TaskDeleteButton({ taskId, redirectUrl }: TaskDeleteButtonProps)
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger render={<Button variant="destructive" />}>
-        Delete
+      <DialogTrigger render={<Button variant="destructive" size="sm" />}>
+        Delete Workspace
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete Task</DialogTitle>
+          <DialogTitle>Delete Workspace</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete this task? This action cannot be undone.
+            Are you sure you want to delete this workspace? This action cannot be undone and will permanently delete all associated projects and tasks.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="mt-4">
@@ -66,7 +66,7 @@ export function TaskDeleteButton({ taskId, redirectUrl }: TaskDeleteButtonProps)
             Cancel
           </Button>
           <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
-            {isDeleting ? "Deleting..." : "Delete Task"}
+            {isDeleting ? "Deleting..." : "Delete Workspace"}
           </Button>
         </DialogFooter>
       </DialogContent>

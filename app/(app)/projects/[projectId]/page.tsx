@@ -15,6 +15,7 @@ import {
   PaginationPrevious,
   PaginationEllipsis,
 } from "@/components/ui/pagination";
+import { ProjectDeleteButton } from "@/components/project/ProjectDeleteButton";
 import Link from "next/link";
 
 const PAGE_SIZE = 20;
@@ -46,19 +47,24 @@ export default async function ProjectDetailPage({
 
   return (
     <div className="space-y-8">
-      <div>
-        <p className="text-sm text-muted-foreground">
-          <Link href="/dashboard" className="hover:underline">Dashboard</Link>
-          {" / "}
-          <Link href={`/workspaces/${project.workspaceId}`} className="hover:underline">
-            Workspace
-          </Link>
-          {" / "}
-          <span>{project.name}</span>
-        </p>
-        <h1 className="text-2xl font-bold mt-1">{project.name}</h1>
-        {project.description && (
-          <p className="text-muted-foreground mt-1">{project.description}</p>
+      <div className="flex justify-between items-start">
+        <div>
+          <p className="text-sm text-muted-foreground">
+            <Link href="/dashboard" className="hover:underline">Dashboard</Link>
+            {" / "}
+            <Link href={`/workspaces/${project.workspaceId}`} className="hover:underline">
+              Workspace
+            </Link>
+            {" / "}
+            <span>{project.name}</span>
+          </p>
+          <h1 className="text-2xl font-bold mt-1">{project.name}</h1>
+          {project.description && (
+            <p className="text-muted-foreground mt-1">{project.description}</p>
+          )}
+        </div>
+        {userRole === "OWNER" && (
+          <ProjectDeleteButton projectId={projectId} workspaceId={project.workspaceId} />
         )}
       </div>
 

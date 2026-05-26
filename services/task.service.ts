@@ -10,6 +10,7 @@ import {
   VALID_TRANSITIONS,
   canCreateTask,
   canUpdateTask,
+  canUpdateTaskPriority,
   canDeleteTask,
   canUpdateTaskStatus,
 } from "@/lib/constants";
@@ -418,6 +419,9 @@ export async function updateTask(
           changes.description = input.description;
         }
         if (input.priority !== undefined && input.priority !== ctx.task.priority) {
+          if (!canUpdateTaskPriority(ctx.role)) {
+            throw new ForbiddenError("Only workspace OWNER can update task priority.");
+          }
           changes.priority = input.priority;
         }
         if (

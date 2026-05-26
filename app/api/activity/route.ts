@@ -21,7 +21,7 @@ export async function GET(_req: NextRequest) {
           project: {
             workspace: {
               members: {
-                some: { userId: user.id },
+                some: { userId: user.id, role: "OWNER" },
               },
             },
           },

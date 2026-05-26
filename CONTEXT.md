@@ -10,7 +10,7 @@ enforcement, interactive UI, and automated testing.
 ## Non-Goals / Scope Boundaries
 
 - Activity log tracks status changes only -- not a full audit trail.
-- No real-time collaboration or WebSocket presence.
+- Real-time collaboration is supported via WebSockets (Pusher) for task board updates.
 - Comments support create/list only; no edit, delete, or threaded replies.
 - Designed for small teams (5-50 members), not enterprise org hierarchies.
 
@@ -23,7 +23,7 @@ enforcement, interactive UI, and automated testing.
 | ORM | Prisma 7 with `@prisma/adapter-pg` |
 | Framework | Next.js 16 App Router (Server Components + Route Handlers) |
 | Auth | Custom session auth in PostgreSQL (no Auth0/NextAuth) |
-| UI Framework | Tailwind CSS v4 + shadcn/ui primitives |
+| UI Framework | Tailwind CSS v4 + shadcn/ui + Base UI primitives (with Next-Themes Dark Mode) |
 | Validation | Zod v4 on every Route Handler |
 | E2E Testing | Playwright with real PostgreSQL (no mocking) |
 | Locale | English (code, docs, comments) |
@@ -37,10 +37,10 @@ enforcement, interactive UI, and automated testing.
 | **Task** | The core unit of work. Has a title, description, status, priority, assignee, and creator. Lives inside a project. |
 | **Creator** | The Member who originally created a Task. A Task always has exactly one Creator. The Creator retains delete permission regardless of whether they are still the Assignee. _Avoid_: Author, originator |
 | **Status** | One of `TODO`, `IN_PROGRESS`, `IN_REVIEW`, `DONE`, `CANCELED`. Transition rules are enforced server-side as a state machine. |
-| **Priority** | One of `NONE`, `LOW`, `MEDIUM`, `HIGH`, `URGENT`. |
+| **Priority** | One of `LOW`, `MEDIUM`, `HIGH`, `URGENT`. |
 | **WorkspaceMember** | Join table linking a user to a workspace with a role. Uses a composite unique key `(workspaceId, userId)`. |
 | **Role** | The permission level of a WorkspaceMember: OWNER, MEMBER, or VIEWER. Determines which actions the member can perform. |
-| **OWNER** | Full permissions: create/edit/delete any resource, manage members (invite/remove), view Activity Log, delete workspace. |
+| **OWNER** | Full permissions: create/edit/delete any resource, manage member roles (invite/remove/change role), modify task priority, view Activity Log, delete workspace and projects. |
 | **MEMBER** | Can create and edit tasks and projects. Can delete tasks they created. Can change status on tasks they are assigned to. Cannot manage members. |
 | **VIEWER** | Read-only access. Can see the Board and all Tasks but cannot create, update, or delete anything. Cannot manage members. _Avoid_: Observer, read-only user, spectator |
 | **Authorization Policy** | The declarative set of rules that determines which actions each Role can perform. Maps action identifiers (e.g., `task:delete`) to allowed Roles and contextual conditions (e.g., whether the actor is the Task creator). The single source of truth for access control. _Avoid_: Permission rules, ACL, access matrix |
@@ -57,7 +57,7 @@ enforcement, interactive UI, and automated testing.
 >
 > **Dev**: "Can anyone move any card?"
 >
-> **Domain Expert**: "Yes, any Member can update any Task's Status. The OWNER Role only controls Member management — inviting and removing Members."
+> **Domain Expert**: "A Member can update a Task's Status if they are the Assignee, and OWNERs can update any Task's status. The OWNER Role also controls Member management — inviting and removing Members."
 >
 > **Dev**: "What if two people edit the same task at once?"
 >
@@ -85,10 +85,10 @@ enforcement, interactive UI, and automated testing.
 | Hybrid data fetching | Server Components for stable page reads; React Query + Route Handlers for interactive task list with filters/pagination. | [0002](docs/adr/0002-rsc-vs-react-query.md) |
 | Join-chain data isolation | Multi-tenant isolation via Prisma relation filters (Task -> Project -> Workspace -> WorkspaceMember). No RLS, no middleware hooks. | [0003](docs/adr/0003-prisma-join-chain-isolation.md) |
 | Route Handlers over Server Actions | Structured JSON responses, standard HTTP semantics, testable via fetch, shared Zod schemas for type safety. | [0004](docs/adr/0004-route-handlers-over-server-actions.md) |
-| No real-time WebSocket | React Query cache invalidation + window-focus refetch provides sufficient freshness. Optimistic updates make mutations feel instant. | [0005](docs/adr/0005-no-real-time-websocket.md) |
+| Real-time WebSocket | Pusher is used to broadcast task creation, updates, and deletions to connected clients for an instant real-time board experience. | [0005](docs/adr/0005-no-real-time-websocket.md) (Deprecated) |
 | Last-write-wins over CRDT | Task board edits are low-conflict by nature; CRDT complexity not justified at current scale. | [0006](docs/adr/0006-last-write-wins-over-crdt.md) |
 | Task state machine | Strict transition map shared between service layer and client. Wrapped in Prisma `$transaction` for atomic status + activity log updates. | (embedded in [architecture.md](docs/architecture.md#6-task-state-machine)) |
-| RBAC with task-level exceptions | OWNER bypasses all checks; MEMBER can delete own tasks and change status on assigned tasks only. | (embedded in [architecture.md](docs/architecture.md#5-permission-model)) |
+| RBAC with task-level exceptions | OWNER bypasses all checks, can modify priority and member roles; MEMBER can delete own tasks and change status on assigned tasks only. | (embedded in [architecture.md](docs/architecture.md#5-permission-model)) |
 
 ## Testing Philosophy
 

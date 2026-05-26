@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Architecture review — remote-task-board</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose" });
+    </script>
+    <style>
+      .seam { stroke-dasharray: 4 4; }
+      .leak { stroke: #dc2626; }
+      .deep { background: linear-gradient(135deg, #0f172a, #1e293b); }
+      .badge-strong { background: #10b981; color: white; }
+      .badge-worth { background: #f59e0b; color: white; }
+      .badge-spec { background: #64748b; color: white; }
+      .badge-cat { background: #e2e8f0; color: #334155; }
+      body { font-family: 'Georgia', serif; }
+      h1, h2, h3 { font-family: 'Georgia', serif; }
+    </style>
+  </head>
+  <body class="bg-stone-50 text-slate-900">
+    <main class="max-w-5xl mx-auto px-6 py-12 space-y-12">
+
+      <!-- Header -->
+      <header class="border-b border-slate-200 pb-8">
+        <h1 class="text-3xl font-bold text-slate-900 mb-2">Architecture Review</h1>
+        <p class="text-sm text-slate-500 font-mono">remote-task-board · 2026-05-25</p>
+        <div class="flex gap-6 mt-4 text-xs text-slate-600">
+          <span class="flex items-center gap-1.5">
+            <span class="w-4 h-4 border-2 border-slate-400 rounded inline-block"></span>
+            Module
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span class="w-4 h-0 border-t-2 border-dashed border-slate-400 inline-block" style="width:20px"></span>
+            Seam
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span class="w-4 h-0 border-t-2 border-red-500 inline-block" style="width:20px"></span>
+            Leakage
+          </span>
+          <span class="flex items-center gap-1.5">
+            <span class="w-4 h-4 rounded inline-block deep"></span>
+            Deep module
+          </span>
+        </div>
+      </header>
+
+      <!-- Candidates -->
+      <section id="candidates" class="space-y-14">
+
+        <!-- Candidate 1: Task Mutation Pipeline -->
+        <article class="border border-slate-200 rounded-xl bg-white shadow-sm overflow-hidden">
+          <div class="px-6 py-5 border-b border-slate-100">
+            <h2 class="text-xl font-bold mb-2">Deepen the Task mutation pipeline</h2>
+            <div class="flex gap-2">
+              <span class="badge-strong text-xs font-semibold px-2.5 py-1 rounded-full">Strong</span>
+              <span class="badge-cat text-xs font-medium px-2.5 py-1 rounded-full">in-process</span>
+            </div>
+          </div>
+
+          <div class="px-6 py-4">
+            <p class="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-2">Files</p>
+            <p class="font-mono text-sm text-slate-700">services/task-service.ts · schemas/task.ts · lib/pusher.ts · lib/auth.ts</p>
+          </div>
+
+          <!-- Before / After -->
+          <div class="grid grid-cols-2 gap-4 px-6 py-4">
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3">Before — Shallow</p>
+              <div class="rounded-lg border border-slate-200 bg-white p-4">
+                <pre class="mermaid">
+flowchart TD
+    A["createTask"] --> B["auth()"]
+    A --> C["zod.parse()"]
+    A --> D["prisma.create()"]
+    A --> E["pusher.trigger()"]
+    
+    F["updateTask"] --> G["auth()"]
+    F --> H["zod.parse()"]
+    F --> I["prisma.update()"]
+    F --> J["pusher.trigger()"]
+    
+    K["deleteTask"] --> L["auth()"]
+    K --> M["prisma.delete()"]
+    K --> N["pusher.trigger()"]
+    
+    classDef leak stroke:#dc2626,stroke-width:2px;
+    class B,G,L leak
+    class E,J,N leak
+                </pre>
+              </div>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3">After — Deep</p>
+              <div class="rounded-lg border-2 border-slate-800 bg-gradient-to-br from-slate-900 to-slate-800 p-4">
+                <pre class="mermaid">
+flowchart TD
+    A["createTask"] --> P["executeMutation"]
+    B["updateTask"] --> P
+    C["deleteTask"] --> P
+    
+    subgraph Pipeline ["Task Mutation Module"]
+        P --> D["authenticate"]
+        D --> E["validate"]
+        E --> F["persist"]
+        F --> G["broadcast"]
+        G --> H["return result"]
+    end
+    
+    style Pipeline fill:#1e293b,stroke:#475569,color:#e2e8f0
+                </pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="px-6 py-4 space-y-3">
+            <p><strong class="text-slate-900">Problem:</strong> <span class="text-slate-600">Four exports each repeat auth → validate → persist → broadcast; interface as wide as implementation.</span></p>
+            <p><strong class="text-slate-900">Solution:</strong> <span class="text-slate-600">Single pipeline module absorbs cross-cutting concerns; mutations become data descriptors.</span></p>
+            <ul class="text-sm text-slate-700 space-y-1">
+              <li>✦ <strong>Locality</strong>: auth bugs concentrate in one place</li>
+              <li>✦ <strong>Locality</strong>: broadcast logic fix-once, fixed-everywhere</li>
+              <li>✦ <strong>Leverage</strong>: one interface, four mutations</li>
+              <li>✦ Interface shrinks; implementation absorbs the repetition</li>
+              <li>✦ New mutations require zero boilerplate</li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Candidate 2: Sync Event Module -->
+        <article class="border border-slate-200 rounded-xl bg-white shadow-sm overflow-hidden">
+          <div class="px-6 py-5 border-b border-slate-100">
+            <h2 class="text-xl font-bold mb-2">Extract the Sync Event module</h2>
+            <div class="flex gap-2">
+              <span class="badge-strong text-xs font-semibold px-2.5 py-1 rounded-full">Strong</span>
+              <span class="badge-cat text-xs font-medium px-2.5 py-1 rounded-full">ports &amp; adapters</span>
+            </div>
+          </div>
+
+          <div class="px-6 py-4">
+            <p class="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-2">Files</p>
+            <p class="font-mono text-sm text-slate-700">lib/pusher.ts · lib/pusher-client.ts · components/dashboard/task-board.tsx</p>
+          </div>
+
+          <!-- Before / After -->
+          <div class="grid grid-cols-2 gap-4 px-6 py-4">
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3">Before — Scattered, no seam</p>
+              <div class="rounded-lg border border-slate-200 bg-white p-4">
+                <pre class="mermaid">
+flowchart LR
+    subgraph Server
+        TS["task-service"] -.leak.-> P["pusher.trigger()"]
+    end
+    subgraph Browser
+        TB["task-board useEffect"] -.leak.-> PC["pusherClient.subscribe()"]
+        PC -.leak.-> BIND["channel.bind()"]
+        BIND -.leak.-> UB["channel.unbind_all()"]
+    end
+    
+    classDef leak stroke:#dc2626,stroke-width:2px;
+    class P,PC,BIND,UB leak
+                </pre>
+              </div>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3">After — Deep, with real seam</p>
+              <div class="rounded-lg border-2 border-slate-800 bg-gradient-to-br from-slate-900 to-slate-800 p-4">
+                <pre class="mermaid">
+flowchart LR
+    subgraph Server
+        TS["task-service"] --> BE["broadcastSyncEvent()"]
+    end
+    subgraph Browser
+        TB["task-board"] --> HOOK["useSyncChannel()"]
+        subgraph HookInternals ["Sync Event Module"]
+            HOOK --> SUB["subscribe"]
+            SUB --> RECON["reconnect"]
+            RECON --> STATE["connectionState"]
+        end
+    end
+    
+    style HookInternals fill:#1e293b,stroke:#475569,color:#e2e8f0
+                </pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="px-6 py-4 space-y-3">
+            <p><strong>Problem:</strong> <span class="text-slate-600">Real-time sync scattered across 3 files; no reconnection; no error handling; no seam for testing.</span></p>
+            <p><strong>Solution:</strong> <span class="text-slate-600">Extract useSyncChannel hook (client) and broadcastSyncEvent (server); two adapters justify the seam.</span></p>
+            <ul class="text-sm text-slate-700 space-y-1">
+              <li>✦ Two adapters justify the seam: Pusher in prod, in-memory in tests</li>
+              <li>✦ <strong>Locality</strong>: reconnection logic in one place</li>
+              <li>✦ <strong>Leverage</strong>: one hook, every Channel subscription</li>
+              <li>✦ Connection State visible to Members</li>
+              <li>✦ Tests hit one interface, no live Soketi needed</li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Candidate 3: Authorization Module -->
+        <article class="border border-slate-200 rounded-xl bg-white shadow-sm overflow-hidden">
+          <div class="px-6 py-5 border-b border-slate-100">
+            <h2 class="text-xl font-bold mb-2">Extract the Authorization Policy module</h2>
+            <div class="flex gap-2">
+              <span class="badge-worth text-xs font-semibold px-2.5 py-1 rounded-full">Worth exploring</span>
+              <span class="badge-cat text-xs font-medium px-2.5 py-1 rounded-full">in-process</span>
+            </div>
+          </div>
+
+          <div class="px-6 py-4">
+            <p class="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-2">Files</p>
+            <p class="font-mono text-sm text-slate-700">services/task-service.ts · services/member-service.ts</p>
+          </div>
+
+          <!-- Before / After — cross section style -->
+          <div class="grid grid-cols-2 gap-4 px-6 py-4">
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3">Before — Inlined checks</p>
+              <div class="rounded-lg border border-slate-200 bg-white p-4 space-y-2">
+                <div class="border-l-4 border-red-400 bg-red-50 px-3 py-2">
+                  <p class="text-xs uppercase tracking-wider text-red-600 font-semibold">task-service.ts</p>
+                  <p class="text-xs font-mono text-red-700 mt-1">if (!session?.user) throw "Unauthorized"</p>
+                </div>
+                <div class="border-l-4 border-red-400 bg-red-50 px-3 py-2">
+                  <p class="text-xs uppercase tracking-wider text-red-600 font-semibold">member-service.ts</p>
+                  <p class="text-xs font-mono text-red-700 mt-1">if (role !== "ADMIN") throw "Only admins..."</p>
+                </div>
+                <div class="border-l-4 border-red-400 bg-red-50 px-3 py-2">
+                  <p class="text-xs uppercase tracking-wider text-red-600 font-semibold">member-service.ts</p>
+                  <p class="text-xs font-mono text-red-700 mt-1">if (role !== "ADMIN") throw "Only admins..."</p>
+                </div>
+                <p class="text-xs text-red-500 italic mt-2">Same check duplicated. No task-level permissions.</p>
+              </div>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3">After — Declarative policy</p>
+              <div class="rounded-lg border-2 border-slate-800 bg-gradient-to-br from-slate-900 to-slate-800 p-4 text-slate-100">
+                <p class="text-xs uppercase tracking-wider text-emerald-400 font-semibold mb-2">lib/authorization.ts</p>
+                <pre class="text-xs font-mono leading-relaxed text-slate-300">authorize("task:create", ctx)
+authorize("task:delete", ctx)
+authorize("member:invite", ctx)
+authorize("member:remove", ctx)
+
+// Policy Map
+task:create  → [ADMIN, MEMBER]
+task:delete  → [ADMIN] or isCreator
+member:invite → [ADMIN]
+member:remove → [ADMIN]</pre>
+                <p class="text-xs text-emerald-400 italic mt-2">One interface. One place to test. One place to change.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="px-6 py-4 space-y-3">
+            <p><strong>Problem:</strong> <span class="text-slate-600">Role checking inlined across services; no seam between "who can" and "the doing"; no task-level permissions.</span></p>
+            <p><strong>Solution:</strong> <span class="text-slate-600">Declarative policy map behind a single authorize() interface.</span></p>
+            <ul class="text-sm text-slate-700 space-y-1">
+              <li>✦ <strong>Locality</strong>: all permission rules in one module</li>
+              <li>✦ <strong>Leverage</strong>: one interface, every protected action</li>
+              <li>✦ Pure function — testable with zero mocks</li>
+              <li>✦ Delete 3 inline permission checks</li>
+              <li>✦ Enables Viewer Role without touching services</li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Candidate 4: TaskBoard Module -->
+        <article class="border border-slate-200 rounded-xl bg-white shadow-sm overflow-hidden">
+          <div class="px-6 py-5 border-b border-slate-100">
+            <h2 class="text-xl font-bold mb-2">Separate concerns in the Board module</h2>
+            <div class="flex gap-2">
+              <span class="badge-worth text-xs font-semibold px-2.5 py-1 rounded-full">Worth exploring</span>
+              <span class="badge-cat text-xs font-medium px-2.5 py-1 rounded-full">in-process</span>
+            </div>
+          </div>
+
+          <div class="px-6 py-4">
+            <p class="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-2">Files</p>
+            <p class="font-mono text-sm text-slate-700">components/dashboard/task-board.tsx</p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 px-6 py-4">
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3">Before — One module, four concerns</p>
+              <div class="rounded-lg border border-slate-200 bg-white p-4 space-y-1">
+                <div class="h-10 border border-slate-300 rounded flex items-center px-3 text-xs uppercase tracking-wider text-slate-500 font-semibold bg-red-50">State management (useState × 3)</div>
+                <div class="h-10 border border-slate-300 rounded flex items-center px-3 text-xs uppercase tracking-wider text-slate-500 font-semibold bg-red-50">Real-time sync (useEffect + pusher)</div>
+                <div class="h-10 border border-slate-300 rounded flex items-center px-3 text-xs uppercase tracking-wider text-slate-500 font-semibold bg-red-50">Filtering logic (computed filteredTasks)</div>
+                <div class="h-10 border border-slate-300 rounded flex items-center px-3 text-xs uppercase tracking-wider text-slate-500 font-semibold bg-amber-50">UI rendering (JSX)</div>
+                <p class="text-xs text-red-500 italic mt-2">Interface = implementation. Can't test filtering without rendering.</p>
+              </div>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3">After — Internal seams</p>
+              <div class="rounded-lg border-2 border-slate-800 bg-gradient-to-br from-slate-900 to-slate-800 p-4 space-y-1">
+                <div class="h-10 border border-emerald-600 rounded flex items-center px-3 text-xs uppercase tracking-wider text-emerald-400 font-semibold bg-emerald-900/30">useSyncChannel() → extracted hook</div>
+                <div class="h-10 border border-emerald-600 rounded flex items-center px-3 text-xs uppercase tracking-wider text-emerald-400 font-semibold bg-emerald-900/30">useTaskFilters() → extracted hook</div>
+                <div class="h-10 border border-emerald-600 rounded flex items-center px-3 text-xs uppercase tracking-wider text-emerald-400 font-semibold bg-emerald-900/30">useOptimisticTasks() → extracted hook</div>
+                <div class="h-10 border border-slate-600 rounded flex items-center px-3 text-xs uppercase tracking-wider text-slate-400 font-semibold bg-slate-800">TaskBoard: composition only (JSX)</div>
+                <p class="text-xs text-emerald-400 italic mt-2">Internal seams. Board module stays deep. Hooks testable in isolation.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="px-6 py-4 space-y-3">
+            <p><strong>Problem:</strong> <span class="text-slate-600">Board module mixes state, sync, filtering, and rendering; can't test logic without rendering.</span></p>
+            <p><strong>Solution:</strong> <span class="text-slate-600">Extract internal seams as hooks; Board becomes a composition shell.</span></p>
+            <ul class="text-sm text-slate-700 space-y-1">
+              <li>✦ <strong>Locality</strong>: filtering bugs isolated in useTaskFilters</li>
+              <li>✦ Tests hit hook interfaces without rendering</li>
+              <li>✦ Board module depth unchanged — internal seams, not external</li>
+            </ul>
+          </div>
+        </article>
+
+        <!-- Candidate 5: Error Resilience -->
+        <article class="border border-slate-200 rounded-xl bg-white shadow-sm overflow-hidden">
+          <div class="px-6 py-5 border-b border-slate-100">
+            <h2 class="text-xl font-bold mb-2">Build the error resilience module</h2>
+            <div class="flex gap-2">
+              <span class="badge-strong text-xs font-semibold px-2.5 py-1 rounded-full">Strong</span>
+              <span class="badge-cat text-xs font-medium px-2.5 py-1 rounded-full">in-process</span>
+            </div>
+          </div>
+
+          <div class="px-6 py-4">
+            <p class="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-2">Files</p>
+            <p class="font-mono text-sm text-slate-700">app/dashboard/error.tsx · app/dashboard/loading.tsx · components/dashboard/*.tsx (catch blocks)</p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 px-6 py-4">
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3">Before — No module exists</p>
+              <div class="rounded-lg border border-slate-200 bg-white p-4">
+                <pre class="mermaid">
+flowchart TD
+    A["createTask fails"] --> B["console.error"]
+    C["updateTask fails"] --> D["console.error"]
+    E["deleteTask fails"] --> F["console.error"]
+    G["component crashes"] --> H["white screen"]
+    I["page load fails"] --> J["Next.js default error"]
+    
+    classDef leak stroke:#dc2626,stroke-width:2px;
+    class B,D,F,H,J leak
+                </pre>
+              </div>
+            </div>
+            <div>
+              <p class="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3">After — Three-layer defence</p>
+              <div class="rounded-lg border-2 border-slate-800 bg-gradient-to-br from-slate-900 to-slate-800 p-4">
+                <pre class="mermaid">
+flowchart TD
+    A["Server Action fails"] --> B["Structured response"]
+    B --> C["Toast notification"]
+    
+    D["Component crashes"] --> E["Error Boundary"]
+    E --> F["Retry button"]
+    
+    G["Page loading"] --> H["Suspense skeleton"]
+    
+    I["Optimistic fails"] --> J["Rollback + toast"]
+    
+    style B fill:#10b981,color:#fff
+    style E fill:#10b981,color:#fff
+    style H fill:#10b981,color:#fff
+    style J fill:#10b981,color:#fff
+                </pre>
+              </div>
+            </div>
+          </div>
+
+          <div class="px-6 py-4 space-y-3">
+            <p><strong>Problem:</strong> <span class="text-slate-600">No error module exists; errors silently logged; crashes destroy the page.</span></p>
+            <p><strong>Solution:</strong> <span class="text-slate-600">Three-layer defence: structured responses → Error Boundary → Suspense skeleton.</span></p>
+            <ul class="text-sm text-slate-700 space-y-1">
+              <li>✦ <strong>Leverage</strong>: one Error Boundary catches all component crashes</li>
+              <li>✦ <strong>Locality</strong>: error presentation in one place, not per-component</li>
+              <li>✦ Members see feedback instead of console.error</li>
+              <li>✦ Failed optimistic updates roll back visually</li>
+            </ul>
+          </div>
+        </article>
+
+      </section>
+
+      <!-- Top Recommendation -->
+      <section id="top-recommendation" class="border-2 border-emerald-300 rounded-xl bg-emerald-50 p-8">
+        <h2 class="text-xl font-bold text-emerald-900 mb-3">Top Recommendation</h2>
+        <p class="text-slate-800">
+          <strong><a href="#candidates" class="text-emerald-700 underline">Deepen the Task mutation pipeline</a></strong> — tackle first.
+        </p>
+        <p class="text-slate-600 mt-2">
+          It has the highest leverage: every future mutation (Activity Log writes, new Task operations) passes through it. 
+          It unblocks the Authorization Policy module (which plugs into the pipeline) and the Activity Log (which emits from it).
+          And it's the lowest-risk refactor — the external interface doesn't change, so all existing tests pass untouched.
+        </p>
+        <p class="text-sm text-emerald-700 mt-3 font-semibold">
+          Pair with the Sync Event extraction (candidate #2) for the highest compound impact in a single sprint.
+        </p>
+      </section>
+
+      <footer class="text-center text-xs text-slate-400 pt-8 border-t border-slate-200">
+        Generated by improve-codebase-architecture skill · Domain vocabulary from CONTEXT.md · Architecture vocabulary from LANGUAGE.md
+      </footer>
+
+    </main>
+  </body>
+</html>

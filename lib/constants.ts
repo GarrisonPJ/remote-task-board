@@ -33,6 +33,10 @@ export function canUpdateTask(role: WorkspaceRole): boolean {
   return role === "OWNER" || role === "MEMBER";
 }
 
+export function canUpdateTaskPriority(role: WorkspaceRole): boolean {
+  return role === "OWNER";
+}
+
 /**
  * OWNER can delete any task; MEMBER can only delete tasks they created.
  */

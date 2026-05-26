@@ -2,7 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
-import { LayoutDashboard } from "lucide-react";
+import { LayoutDashboard, ListTodo } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function SidebarNav() {
@@ -10,6 +10,7 @@ export function SidebarNav() {
 
   const links = [
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/tasks", label: "All Tasks", icon: ListTodo },
   ];
 
   return (

@@ -7,6 +7,7 @@ import { ProjectCard } from "@/components/project/ProjectCard";
 import { CreateProjectDialog } from "@/components/project/CreateProjectDialog";
 import { TaskList } from "@/components/task/TaskList";
 import { MemberList } from "@/components/workspace/MemberList";
+import { WorkspaceDeleteButton } from "@/components/workspace/WorkspaceDeleteButton";
 import Link from "next/link";
 
 export default async function WorkspaceDetailPage({
@@ -27,16 +28,21 @@ export default async function WorkspaceDetailPage({
 
   return (
     <div className="space-y-8">
-      <div>
-        <p className="text-sm text-muted-foreground">
-          <Link href="/dashboard" className="hover:underline">Dashboard</Link>
-          {" / "}
-          <span>{workspace.name}</span>
-        </p>
-        <h1 className="text-2xl font-bold mt-1">{workspace.name}</h1>
-        <p className="text-muted-foreground mt-1">
-          Role: {workspace.role}
-        </p>
+      <div className="flex justify-between items-start">
+        <div>
+          <p className="text-sm text-muted-foreground">
+            <Link href="/dashboard" className="hover:underline">Dashboard</Link>
+            {" / "}
+            <span>{workspace.name}</span>
+          </p>
+          <h1 className="text-2xl font-bold mt-1">{workspace.name}</h1>
+          <p className="text-muted-foreground mt-1">
+            Role: {workspace.role}
+          </p>
+        </div>
+        {workspace.role === "OWNER" && (
+          <WorkspaceDeleteButton workspaceId={workspaceId} />
+        )}
       </div>
 
       <section>

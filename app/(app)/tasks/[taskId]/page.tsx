@@ -7,6 +7,7 @@ import { TaskPriorityBadge } from "@/components/task/TaskPriorityBadge";
 import { TaskEditDialog } from "@/components/task/TaskEditDialog";
 import { TaskDeleteButton } from "@/components/task/TaskDeleteButton";
 import { TaskStatusControl } from "@/components/task/TaskStatusControl";
+import { TaskPriorityControl } from "@/components/task/TaskPriorityControl";
 import { TaskActivityTimeline } from "@/components/task/TaskActivityTimeline";
 import { CommentList } from "@/components/comment/CommentList";
 import { CommentForm } from "@/components/comment/CommentForm";
@@ -49,23 +50,32 @@ export default async function TaskDetailPage({
         </div>
         <div className="flex gap-2 shrink-0">
           {(userRole === "OWNER" || (userRole === "MEMBER" && user.id === task.creatorId)) && (
-            <TaskDeleteButton taskId={task.id} />
+            <TaskDeleteButton taskId={task.id} redirectUrl={`/projects/${task.projectId}`} />
           )}
           {userRole !== "VIEWER" && <TaskEditDialog task={task} workspaceId={workspaceId} />}
         </div>
       </div>
 
-      {/* Status control */}
-      <section className="rounded-xl border bg-card p-5 space-y-3 animate-slide-up stagger-2 shadow-sm">
-        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Status</h2>
-        <TaskStatusControl
-          taskId={task.id}
-          currentStatus={task.status}
-          userId={user.id}
-          assigneeId={task.assignee?.id ?? null}
-          userRole={userRole}
-        />
-      </section>
+      {/* Status & Priority control */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <section className="rounded-xl border bg-card p-5 space-y-3 animate-slide-up stagger-2 shadow-sm">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Status</h2>
+          <TaskStatusControl
+            taskId={task.id}
+            currentStatus={task.status}
+            userId={user.id}
+            assigneeId={task.assignee?.id ?? null}
+            userRole={userRole}
+          />
+        </section>
+
+        {userRole === "OWNER" && (
+          <section className="rounded-xl border bg-card p-5 space-y-3 animate-slide-up stagger-2 shadow-sm">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">Priority</h2>
+            <TaskPriorityControl taskId={task.id} currentPriority={task.priority} userRole={userRole} />
+          </section>
+        )}
+      </div>
 
       {/* Description */}
       {task.description && (

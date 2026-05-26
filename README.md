@@ -74,11 +74,11 @@ Every task query includes a filtered relation chain. If the user has no `Workspa
 
 ### 3. Role-Based Access Control (RBAC) with Task-Level Exceptions
 
-| Role | Create | Edit | Delete | Status Change |
-|---|---|---|---|---|
-| OWNER | Yes | Yes | Yes (any) | Yes (any) |
-| MEMBER | Yes | Yes | Own tasks only | Only assigned tasks |
-| VIEWER | No | No | No | No |
+| Role | Create | Edit | Delete | Status Change | Advanced |
+|---|---|---|---|---|---|
+| OWNER | Yes | Yes | Yes (any) | Yes (any) | Manage roles, modify priority, delete projects/workspace |
+| MEMBER | Yes | Yes | Own tasks only | Only assigned tasks | N/A |
+| VIEWER | No | No | No | No | N/A |
 
 MEMBERs can change status **only on tasks they are assigned to**. OWNERs bypass this check. The permission functions in `lib/constants.ts` are used by both the service layer and client UI for consistent guard rendering.
 
@@ -214,7 +214,7 @@ Key architectural choices and their rationale are documented in:
   - [ADR 0002 — RSC vs React Query Data Fetching](docs/adr/0002-rsc-vs-react-query.md)
   - [ADR 0003 — Prisma Join-Chain Data Isolation](docs/adr/0003-prisma-join-chain-isolation.md)
   - [ADR 0004 — Route Handlers over Server Actions](docs/adr/0004-route-handlers-over-server-actions.md)
-  - [ADR 0005 — No Real-Time WebSocket Sync](docs/adr/0005-no-real-time-websocket.md)
+  - [ADR 0005 — No Real-Time WebSocket Sync (Deprecated)](docs/adr/0005-no-real-time-websocket.md)
   - [ADR 0006 — Last-Write-Wins over CRDT](docs/adr/0006-last-write-wins-over-crdt.md)
 
 ---
@@ -233,7 +233,6 @@ Key architectural choices and their rationale are documented in:
 ## Scope Boundaries
 
 - Activity log tracks status changes only — not a full audit trail
-- No real-time collaboration or WebSocket presence
 - Comments support create/list only; no edit, delete, or threaded replies
 - Designed for small teams (5-50 members), not enterprise org hierarchies
 

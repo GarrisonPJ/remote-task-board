@@ -2,6 +2,7 @@ import { Layers } from "lucide-react";
 import { getUserFromSession } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { LogoutButton } from "@/components/layout/LogoutButton";
+import { ThemeToggle } from "@/components/theme/theme-toggle";
 import { QueryProvider } from "@/components/layout/QueryProvider";
 import { CreateWorkspaceDialog } from "@/components/workspace/CreateWorkspaceDialog";
 import { MobileNav } from "@/components/layout/MobileNav";
@@ -38,7 +39,10 @@ export default async function AppLayout({
               <p className="text-xs text-muted-foreground truncate">{user.email}</p>
             </div>
           </div>
-          <LogoutButton />
+          <div className="flex items-center gap-2">
+            <LogoutButton />
+            <ThemeToggle />
+          </div>
         </div>
       </aside>
 

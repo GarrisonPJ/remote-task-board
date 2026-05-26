@@ -27,9 +27,10 @@
 - ✅ **任务 CRUD**：创建、查看、编辑、删除任务。
 - ✅ **任务状态流转**：通过状态机限制 TODO / IN_PROGRESS / IN_REVIEW / DONE / CANCELED 的转换，支持 review/reopen 与 cancel/reopen 路径。
 - ✅ **搜索 / 筛选 / 分页**：任务列表支持状态、优先级、负责人和标题搜索。
-- ✅ **权限控制**：OWNER、MEMBER、VIEWER 以及 assignee 权限分别约束不同操作。
+- ✅ **权限控制**：OWNER 可修改成员角色和任务优先级；MEMBER、VIEWER 以及 assignee 权限分别约束不同操作。
 - ✅ **活动日志**：任务状态变更和 ActivityLog 在同一个 Prisma transaction 中写入。
 - ✅ **数据隔离**：通过 Task → Project → Workspace → WorkspaceMember 链路校验访问权限。
+- ✅ **WebSocket 实时同步**：基于 Pusher 实现任务状态的毫秒级多端同步。
 - ✅ **评论**：OWNER/MEMBER 可发表评论，VIEWER 只读。
 - ✅ **可选 AI 创建任务**：配置 `DEEPSEEK_API_KEY` 后可用自然语言解析任务。
 - 📋 **后续扩展**：邀请链接、邮件通知、Kanban、完整审计日志。
@@ -92,7 +93,6 @@ Playwright 会根据 `playwright.config.ts` 自动启动 Next.js app。CI 使用
 - 权限模型适合小团队，不覆盖企业级组织层级。
 - 评论目前支持创建和列表展示，不支持编辑、删除和楼中楼。
 - 未配置 `DEEPSEEK_API_KEY` 时隐藏 AI 创建任务入口。
-- 暂无实时协作或 WebSocket presence。
 
 ## 后续可扩展
 

@@ -120,27 +120,30 @@ export function TaskForm({ projectId, task, workspaceId, onSuccessAction }: Task
 
       <div>
         <label className="text-sm font-medium">Description</label>
-        <Input
+        <textarea
+          className="flex min-h-[80px] w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 mt-1 dark:bg-input/30 dark:hover:bg-input/50"
           placeholder="Enter description (optional)"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
         />
       </div>
 
-      <div>
-        <label className="text-sm font-medium">Priority</label>
-        <Select value={priority} onValueChange={(v) => setPriority(v as TaskPriority)}>
-          <SelectTrigger className="min-w-[130px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="LOW">Low</SelectItem>
-            <SelectItem value="MEDIUM">Medium</SelectItem>
-            <SelectItem value="HIGH">High</SelectItem>
-            <SelectItem value="URGENT">Urgent</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      {!isEdit && (
+        <div>
+          <label className="text-sm font-medium">Priority</label>
+          <Select value={priority} onValueChange={(v) => setPriority(v as TaskPriority)}>
+            <SelectTrigger className="min-w-[130px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="LOW">Low</SelectItem>
+              <SelectItem value="MEDIUM">Medium</SelectItem>
+              <SelectItem value="HIGH">High</SelectItem>
+              <SelectItem value="URGENT">Urgent</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       {members.length > 0 && (
         <div>
@@ -168,7 +171,7 @@ export function TaskForm({ projectId, task, workspaceId, onSuccessAction }: Task
           type="date"
           value={dueDate}
           onChange={(e) => setDueDate(e.target.value)}
-          className="accent-primary [color-scheme:light]"
+          className="accent-primary"
         />
       </div>
 

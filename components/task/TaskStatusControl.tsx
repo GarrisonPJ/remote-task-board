@@ -1,6 +1,7 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { VALID_TRANSITIONS, canUpdateTaskStatus, STATUS_LABELS } from "@/lib/constants";
@@ -16,6 +17,7 @@ type Props = {
 
 export function TaskStatusControl({ taskId, currentStatus, userId, assigneeId, userRole }: Props) {
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   const statusMutation = useMutation({
     mutationFn: async (newStatus: string) => {
@@ -66,6 +68,7 @@ export function TaskStatusControl({ taskId, currentStatus, userId, assigneeId, u
     onSettled: () => {
       // Refetch to ensure consistency with server
       queryClient.invalidateQueries({ queryKey: ["tasks"] });
+      router.refresh();
     },
   });
 

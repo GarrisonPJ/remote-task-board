@@ -14,12 +14,12 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
-type TaskDeleteButtonProps = {
-  taskId: string;
-  redirectUrl?: string;
+type ProjectDeleteButtonProps = {
+  projectId: string;
+  workspaceId: string;
 };
 
-export function TaskDeleteButton({ taskId, redirectUrl }: TaskDeleteButtonProps) {
+export function ProjectDeleteButton({ projectId, workspaceId }: ProjectDeleteButtonProps) {
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -28,20 +28,21 @@ export function TaskDeleteButton({ taskId, redirectUrl }: TaskDeleteButtonProps)
     setIsDeleting(true);
 
     try {
-      const res = await fetch(`/api/tasks/${taskId}`, {
+      const res = await fetch(`/api/projects/${projectId}`, {
         method: "DELETE",
       });
 
       const json = await res.json();
 
       if (!json.success) {
-        toast.error(json.error?.message ?? "Failed to delete task");
+        toast.error(json.error?.message ?? "Failed to delete project");
         return;
       }
 
-      toast.success("Task deleted!");
+      toast.success("Project deleted!");
       setIsOpen(false);
-      router.push(redirectUrl || "/dashboard");
+      router.push(`/workspaces/${workspaceId}`);
+      router.refresh();
     } catch {
       toast.error("Network error. Please try again.");
     } finally {
@@ -51,14 +52,14 @@ export function TaskDeleteButton({ taskId, redirectUrl }: TaskDeleteButtonProps)
 
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
-      <DialogTrigger render={<Button variant="destructive" />}>
-        Delete
+      <DialogTrigger render={<Button variant="destructive" size="sm" />}>
+        Delete Project
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete Task</DialogTitle>
+          <DialogTitle>Delete Project</DialogTitle>
           <DialogDescription>
-            Are you sure you want to delete this task? This action cannot be undone.
+            Are you sure you want to delete this project? This action cannot be undone and will permanently delete all associated tasks.
           </DialogDescription>
         </DialogHeader>
         <DialogFooter className="mt-4">
@@ -66,7 +67,7 @@ export function TaskDeleteButton({ taskId, redirectUrl }: TaskDeleteButtonProps)
             Cancel
           </Button>
           <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
-            {isDeleting ? "Deleting..." : "Delete Task"}
+            {isDeleting ? "Deleting..." : "Delete Project"}
           </Button>
         </DialogFooter>
       </DialogContent>

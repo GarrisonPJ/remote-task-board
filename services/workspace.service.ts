@@ -241,3 +241,43 @@ export async function removeMember(
 
   await prisma.workspaceMember.delete({ where: { id: memberId } });
 }
+
+// ============================================================
+// updateMemberRole (OWNER only)
+// ============================================================
+
+export async function updateMemberRole(
+  workspaceId: string,
+  memberId: string,
+  newRole: "OWNER" | "MEMBER" | "VIEWER",
+  actorId: string
+): Promise<void> {
+  const operator = await prisma.workspaceMember.findUnique({
+    where: { workspaceId_userId: { workspaceId, userId: actorId } },
+  });
+  if (!operator) throw new NotFoundError("Workspace");
+  if (!canManageWorkspace(operator.role)) throw new ForbiddenError();
+
+  const target = await prisma.workspaceMember.findUnique({
+    where: { id: memberId },
+  });
+  if (!target || target.workspaceId !== workspaceId) throw new NotFoundError("Member");
+
+  if (target.role === "OWNER" && newRole !== "OWNER") {
+    const ownerCount = await prisma.workspaceMember.count({
+      where: { workspaceId, role: "OWNER" },
+    });
+    if (ownerCount <= 1) {
+      throw new AppError(
+        "LAST_OWNER",
+        "Cannot demote the last owner of a workspace.",
+        400
+      );
+    }
+  }
+
+  await prisma.workspaceMember.update({
+    where: { id: memberId },
+    data: { role: newRole },
+  });
+}

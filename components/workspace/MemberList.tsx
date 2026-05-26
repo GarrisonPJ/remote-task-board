@@ -97,6 +97,25 @@ export function MemberList({ workspaceId, currentUserRole }: Props) {
     }
   }
 
+  async function handleUpdateRole(memberId: string, newRole: WorkspaceRole) {
+    try {
+      const res = await fetch(`/api/workspaces/${workspaceId}/members/${memberId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ role: newRole }),
+      });
+      const json = await res.json();
+      if (!json.success) {
+        toast.error(json.error?.message ?? "Failed to update role");
+        return;
+      }
+      toast.success("Role updated");
+      await loadMembers();
+    } catch {
+      toast.error("Network error. Please try again.");
+    }
+  }
+
   const isOwner = currentUserRole === "OWNER";
 
   if (loading) {
@@ -151,9 +170,25 @@ export function MemberList({ workspaceId, currentUserRole }: Props) {
                 </p>
               </div>
               <div className="flex items-center gap-2 ml-4">
-                <Badge variant="secondary">
-                  {ROLE_LABELS[m.role] ?? m.role}
-                </Badge>
+                {isOwner ? (
+                  <Select
+                    value={m.role}
+                    onValueChange={(v) => handleUpdateRole(m.id, v as WorkspaceRole)}
+                  >
+                    <SelectTrigger className="h-8 w-[110px] text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="OWNER">Owner</SelectItem>
+                      <SelectItem value="MEMBER">Member</SelectItem>
+                      <SelectItem value="VIEWER">Viewer</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Badge variant="secondary">
+                    {ROLE_LABELS[m.role] ?? m.role}
+                  </Badge>
+                )}
                 {isOwner && (
                   <Button
                     variant="ghost"
