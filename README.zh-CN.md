@@ -1,6 +1,12 @@
 # Remote Task Board
 
+🌍 [English](./README.md) | [简体中文](./README.zh-CN.md)
+
 面向远程团队的轻量级任务管理平台。
+
+> **✨ 在线体验 (Live Demo):** [remote-task-board.netlify.app](https://remote-task-board.netlify.app)
+>
+> **🔐 演示账号:** `alice@test.com` / `bob@test.com` — 统一密码: `password123`
 
 技术栈：Next.js、TypeScript、PostgreSQL、Prisma。
 
@@ -83,9 +89,6 @@ Playwright 会根据 `playwright.config.ts` 自动启动 Next.js app。CI 使用
 ## 文档
 
 - [`CONTEXT.md`](CONTEXT.md) — 项目愿景、领域语言、约束与架构决策索引
-- [`docs/architecture.md`](docs/architecture.md) — 架构细节：数据流、认证、权限、状态机、数据隔离
-- [`docs/security.md`](docs/security.md) — 安全模型：Session 保护、CSRF/XSS 防御、已知缺口
-- [`docs/adr/`](docs/adr/) — 架构决策记录（为什么选 Custom Session、RSC vs React Query、Prisma Join-Chain）
 
 ## 已知不足
 

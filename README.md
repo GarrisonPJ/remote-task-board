@@ -1,12 +1,14 @@
 # Remote Task Board
 
+🌍 [English](./README.md) | [简体中文](./README.zh-CN.md)
+
 A full-stack task management platform for remote teams — built as a demonstration of modern TypeScript full-stack engineering.
 
 [![CI](https://github.com/GarrisonPJ/remote-task-board/actions/workflows/ci.yml/badge.svg)](https://github.com/GarrisonPJ/remote-task-board/actions/workflows/ci.yml)
 [![Coverage](https://img.shields.io/badge/coverage-80%25-brightgreen)]()
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict-blue)]()
 
-> **Live Demo:** [remote-task-board.vercel.app](https://remote-task-board.vercel.app) (deploy your own — see [Getting Started](#getting-started))
+> **Live Demo:** [remote-task-board.netlify.app](https://remote-task-board.netlify.app) (deploy your own — see [Getting Started](#getting-started))
 >
 > **Demo Accounts:** `alice@test.com` / `bob@test.com` — password: `password123`
 
@@ -204,18 +206,6 @@ docker run -d \
 Key architectural choices and their rationale are documented in:
 
 - [`CONTEXT.md`](CONTEXT.md) — Project vision, domain language, constraints, and architecture decision index
-- [`docs/architecture.md`](docs/architecture.md) — Data flow diagrams, auth flow, permission model, state machine, data isolation pattern
-- [`docs/design-decisions.md`](docs/design-decisions.md) — Design system (Teal palette, typography), component enhancement backlog, CSS variable strategy
-- [`docs/api.md`](docs/api.md) — API endpoint reference
-- [`docs/security.md`](docs/security.md) — Security model: session protection, CSRF/XSS defenses, data isolation, known gaps
-- [`docs/production-migration-policy.md`](docs/production-migration-policy.md) — Database migration and seed data strategy across environments
-- [`docs/adr/`](docs/adr/) — Architecture Decision Records:
-  - [ADR 0001 — Custom Session Auth](docs/adr/0001-custom-session-auth.md)
-  - [ADR 0002 — RSC vs React Query Data Fetching](docs/adr/0002-rsc-vs-react-query.md)
-  - [ADR 0003 — Prisma Join-Chain Data Isolation](docs/adr/0003-prisma-join-chain-isolation.md)
-  - [ADR 0004 — Route Handlers over Server Actions](docs/adr/0004-route-handlers-over-server-actions.md)
-  - [ADR 0005 — No Real-Time WebSocket Sync (Deprecated)](docs/adr/0005-no-real-time-websocket.md)
-  - [ADR 0006 — Last-Write-Wins over CRDT](docs/adr/0006-last-write-wins-over-crdt.md)
 
 ---
 
