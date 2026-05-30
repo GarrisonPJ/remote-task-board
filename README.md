@@ -39,7 +39,7 @@
 </p>
 
 <p align="center">
-  <sub>Demo accounts: <code>alice@test.com</code> / <code>bob@test.com</code> — password: <code>password123</code></sub>
+  <sub>Demo accounts: <code>alice@test.com</code> / <code>bob@test.com</code> / <code>charlie@test.com</code> / <code>dave@test.com</code> — password: <code>password123</code></sub>
 </p>
 
 ---
@@ -146,7 +146,7 @@ graph TB
 | UI | **Tailwind CSS v4** + **shadcn/ui** + **@base-ui/react** | CSS variable design tokens. Full dark mode. `prefers-reduced-motion` respected |
 | Client State | **TanStack React Query v5** | Task list with URL-driven filters/pagination. Cache invalidation on mutations |
 | Validation | **Zod v4** | Server-side input validation on every Route Handler. Shared schemas with type inference |
-| E2E | **Playwright** | 26 E2E + 24 unit = 50 tests across 6 spec files + 3 unit test files |
+| E2E | **Playwright** | 26 E2E + 45 unit = 71 tests across 6 spec files + 5 unit test files |
 | CI | **GitHub Actions** | Postgres service container → migrate → seed → typecheck → build → unit test + coverage → E2E |
 | AI (opt-in) | **OpenAI SDK / DeepSeek** | Natural-language task creation. Hidden unless `DEEPSEEK_API_KEY` is set |
 
@@ -196,8 +196,10 @@ pnpm dev
 
 | Demo Account | Password | Role |
 |---|---|---|
-| `alice@test.com` | `password123` | OWNER — full access |
-| `bob@test.com` | `password123` | MEMBER — can create/edit own tasks |
+| `alice@test.com` | `password123` | OWNER — Workspace 1 |
+| `bob@test.com` | `password123` | OWNER (Workspace 2) / MEMBER (Workspace 1) |
+| `charlie@test.com` | `password123` | MEMBER — Workspace 1 |
+| `dave@test.com` | `password123` | VIEWER — Workspace 1 (Read-only) |
 
 > Set `DEEPSEEK_API_KEY` in `.env` to enable AI-powered task creation. The feature hides itself when the key is absent.
 
@@ -205,11 +207,11 @@ pnpm dev
 
 ## Testing Strategy
 
-**50 tests** across Playwright (E2E) and Vitest (unit), all running against a real PostgreSQL instance — no mocks.
+**71 tests** across Playwright (E2E) and Vitest (unit), all running against a real PostgreSQL instance — no mocks.
 
 ```bash
 pnpm test:e2e        # Playwright E2E (26 tests, 6 specs)
-pnpm test:unit       # Vitest unit tests (24 tests)
+pnpm test:unit       # Vitest unit tests (45 tests)
 pnpm test:coverage   # Vitest with coverage report
 ```
 

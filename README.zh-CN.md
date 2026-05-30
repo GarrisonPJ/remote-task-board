@@ -39,7 +39,7 @@
 </p>
 
 <p align="center">
-  <sub>演示账号: <code>alice@test.com</code> / <code>bob@test.com</code> — 密码: <code>password123</code></sub>
+  <sub>演示账号: <code>alice@test.com</code> / <code>bob@test.com</code> / <code>charlie@test.com</code> / <code>dave@test.com</code> — 密码: <code>password123</code></sub>
 </p>
 
 ---
@@ -146,7 +146,7 @@ graph TB
 | UI | **Tailwind CSS v4** + **shadcn/ui** + **@base-ui/react** | CSS 变量设计令牌。完整暗色模式。尊重 `prefers-reduced-motion` |
 | 客户端状态 | **TanStack React Query v5** | 任务列表的 URL 驱动筛选/分页。写操作自动失效缓存 |
 | 校验 | **Zod v4** | 每个 Route Handler 均做服务端输入校验。Schema 与 TypeScript 类型推导共享 |
-| E2E 测试 | **Playwright** | 26 个 E2E + 24 个单元 = 50 个测试，覆盖 6 个 spec + 3 个单元测试文件 |
+| E2E 测试 | **Playwright** | 26 个 E2E + 45 个单元 = 71 个测试，覆盖 6 个 spec + 5 个单元测试文件 |
 | CI | **GitHub Actions** | Postgres service container → migrate → seed → typecheck → build → unit test + coverage → E2E |
 | AI（可选） | **OpenAI SDK / DeepSeek** | 自然语言创建任务。未配置 `DEEPSEEK_API_KEY` 时自动隐藏 |
 
@@ -196,8 +196,10 @@ pnpm dev
 
 | 演示账号 | 密码 | 角色 |
 |---|---|---|
-| `alice@test.com` | `password123` | OWNER — 完全访问权限 |
-| `bob@test.com` | `password123` | MEMBER — 可创建和编辑自己的任务 |
+| `alice@test.com` | `password123` | OWNER — 工作区 1 完全控制 |
+| `bob@test.com` | `password123` | OWNER (工作区 2) / MEMBER (工作区 1) |
+| `charlie@test.com` | `password123` | MEMBER — 工作区 1 成员 |
+| `dave@test.com` | `password123` | VIEWER — 工作区 1 只读访客 |
 
 > 在 `.env` 中设置 `DEEPSEEK_API_KEY` 可启用 AI 自然语言创建任务功能。未配置时该功能自动隐藏。
 
@@ -205,11 +207,11 @@ pnpm dev
 
 ## 测试策略
 
-**50 个测试**覆盖 Playwright (E2E) 和 Vitest (单元测试)，全部基于真实 PostgreSQL 实例运行——零 Mock。
+**71 个测试**覆盖 Playwright (E2E) 和 Vitest (单元测试)，全部基于真实 PostgreSQL 实例运行——零 Mock。
 
 ```bash
 pnpm test:e2e        # Playwright E2E（26 个测试，6 个 spec）
-pnpm test:unit       # Vitest 单元测试（24 个测试）
+pnpm test:unit       # Vitest 单元测试（45 个测试）
 pnpm test:coverage   # Vitest + 覆盖率报告
 ```
 
