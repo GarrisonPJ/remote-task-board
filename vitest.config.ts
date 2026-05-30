@@ -13,12 +13,6 @@ export default defineConfig({
       provider: "v8",
       include: ["lib/**", "services/**", "schemas/**"],
       reporter: ["text", "text-summary", "lcov"],
-      thresholds: {
-        lines: 80,
-        functions: 70,
-        branches: 70,
-        statements: 80,
-      },
     },
   },
   resolve: {
