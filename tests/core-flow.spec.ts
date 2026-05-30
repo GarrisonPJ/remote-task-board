@@ -20,7 +20,7 @@ test("user can login with seed account", async ({ page }) => {
   await page.getByRole("button", { name: "Login" }).click();
 
   await expect(page).toHaveURL(/dashboard/);
-  await expect(page.getByText("Welcome back, Alice", { exact: true })).toBeVisible();
+  await expect(page.getByText("Welcome back, Alice (Owner WS1)", { exact: true })).toBeVisible();
 });
 
 test("full creation flow: workspace → project → task", async ({ page }) => {
