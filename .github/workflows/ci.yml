@@ -50,6 +50,8 @@ jobs:
 
       - run: pnpm prisma migrate deploy
 
+      - run: pnpm prisma generate
+
       - run: pnpm db:seed
 
       - run: pnpm typecheck
