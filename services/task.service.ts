@@ -247,6 +247,7 @@ export async function createTask(
         await tx.activityLog.create({
           data: {
             taskId: task.id,
+            projectId: input.projectId,
             actorId,
             action: "CREATED",
             toStatus: "TODO",
@@ -297,7 +298,7 @@ export async function updateTaskStatus(
       // Atomic transaction: update status + write ActivityLog as a single unit.
       const [updatedTask] = await prisma.$transaction([
         prisma.task.update({
-          where: { id: taskId },
+          where: { id: taskId, status: ctx.task.status },
           data: { status: input.status },
           include: {
             assignee: {
@@ -308,6 +309,7 @@ export async function updateTaskStatus(
         prisma.activityLog.create({
           data: {
             taskId,
+            projectId: ctx.task.projectId,
             actorId,
             action: "STATUS_CHANGED",
             fromStatus: ctx.task.status,
@@ -434,6 +436,7 @@ export async function updateTask(
         await tx.activityLog.create({
           data: {
             taskId,
+            projectId: ctx.task.projectId,
             actorId,
             action: "UPDATED",
             details:
@@ -469,7 +472,8 @@ export async function deleteTask(
       await prisma.$transaction(async (tx) => {
         await tx.activityLog.create({
           data: {
-            taskId,
+            taskId: null,
+            projectId: ctx.task.projectId,
             actorId,
             action: "DELETED",
             details: JSON.stringify({ title: ctx.task.title }),
