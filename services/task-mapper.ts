@@ -14,7 +14,8 @@ export type PrismaTaskRow = {
   dueDate?: Date | null;
   activityLogs?: Array<{
     id: string;
-    taskId: string;
+    taskId: string | null;
+    projectId?: string | null;
     actor: { id: string; name: string; email: string };
     action: string;
     fromStatus: string | null;
@@ -38,6 +39,7 @@ export function toTaskDTO(t: PrismaTaskRow): TaskDTO {
     activityLogs: t.activityLogs?.map((log) => ({
       id: log.id,
       taskId: log.taskId,
+      projectId: log.projectId,
       actor: log.actor,
       action: log.action,
       fromStatus: log.fromStatus as TaskDTO["status"] | null,
