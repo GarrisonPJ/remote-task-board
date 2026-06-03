@@ -10,6 +10,7 @@ export interface AuthResult {
 }
 
 export async function register(input: RegisterInput): Promise<AuthResult> {
+  cleanupExpiredSessions().catch(() => {}); // Naturally throttled by low frequency of registrations
   const existing = await prisma.user.findUnique({
     where: { email: input.email },
   });
@@ -50,6 +51,7 @@ export async function register(input: RegisterInput): Promise<AuthResult> {
 }
 
 export async function login(input: LoginInput): Promise<AuthResult> {
+  cleanupExpiredSessions().catch(() => {}); // Naturally throttled by low frequency of logins
   const user = await prisma.user.findUnique({
     where: { email: input.email },
     select: { id: true, name: true, email: true, passwordHash: true },

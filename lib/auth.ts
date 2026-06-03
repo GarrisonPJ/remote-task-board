@@ -14,7 +14,6 @@ import { getCurrentUser, cleanupExpiredSessions } from "@/services/auth.service"
  */
 export async function getUserFromSession(): Promise<UserDTO | null> {
   try {
-    cleanupExpiredSessions().catch(() => {}); // fire-and-forget, time-based throttle
     const cookieStore = await cookies();
     const sessionCookie = cookieStore.get("session_id");
     if (!sessionCookie?.value) return null;
